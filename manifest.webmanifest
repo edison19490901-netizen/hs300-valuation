@@ -1,0 +1,39 @@
+{
+  "name": "沪深300估值",
+  "short_name": "沪深300",
+  "description": "沪深300 PE/PB、历史分位、ERP、股息率与盈利指标的月末估值看板",
+  "lang": "zh-CN",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f9f9f7",
+  "theme_color": "#fcfcfb",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "300.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "300-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "300-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "300-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

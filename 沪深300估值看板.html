@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>沪深300 估值看板</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="300.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#fcfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<meta name="application-name" content="沪深300估值">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="沪深300">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="沪深300 PE/PB、历史分位、ERP、股息率与盈利指标的月末估值看板。">
+<style>
+  :root{
+    color-scheme: light;
+    --surface-1:#fcfcfb; --page:#f9f9f7;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+    --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a; --series-4:#eda100;
+    --wash:rgba(42,120,214,.07);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:where(:not([data-theme="light"])){
+      color-scheme: dark;
+      --surface-1:#1a1a19; --page:#0d0d0d;
+      --text-primary:#f0efec; --text-secondary:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+      --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500;
+      --wash:rgba(57,135,229,.10);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --surface-1:#1a1a19; --page:#0d0d0d;
+    --text-primary:#f0efec; --text-secondary:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500;
+    --wash:rgba(57,135,229,.10);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--page); color:var(--text-primary);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1060px; margin:0 auto; padding:40px 24px 64px;
+    padding-left:max(24px, env(safe-area-inset-left));
+    padding-right:max(24px, env(safe-area-inset-right));
+  }
+  header{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:28px}
+  h1{font-size:26px; line-height:1.25; margin:0 0 6px; font-weight:650; letter-spacing:.01em}
+  .sub{color:var(--text-secondary); font-size:13.5px; margin:0}
+  .theme-btn{
+    border:1px solid var(--border); background:var(--surface-1); color:var(--text-secondary);
+    border-radius:999px; padding:7px 13px; font:inherit; font-size:12.5px; cursor:pointer;
+  }
+  .theme-btn:hover{color:var(--text-primary)}
+  .tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px}
+  @media (max-width:820px){ .tiles{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:600px){
+    .wrap{
+      padding:22px 14px 44px;
+      padding-left:max(14px, env(safe-area-inset-left));
+      padding-right:max(14px, env(safe-area-inset-right));
+    }
+    header{margin-bottom:18px; gap:10px}
+    h1{font-size:21px}
+    .sub{font-size:12.5px}
+    .theme-btn{padding:6px 10px; font-size:12px; flex:none}
+    .tile{padding:13px 13px 11px}
+    .tile .value{font-size:23px}
+    .card{padding:14px 12px 10px}
+    .card h2{font-size:14px}
+    .callout{padding:13px 14px; font-size:13px}
+    .legend{gap:10px}
+    th,td{padding:6px 7px}
+  }
+  .tile{
+    background:var(--surface-1); border:1px solid var(--border); border-radius:12px;
+    padding:16px 16px 14px; min-width:0;
+  }
+  .tile .label{font-size:12.5px; color:var(--muted); margin-bottom:6px; white-space:nowrap}
+  .tile .value{font-size:27px; font-weight:650; line-height:1.15; letter-spacing:-.01em}
+  .tile .note{font-size:12px; color:var(--text-secondary); margin-top:5px}
+  .tile .note b{font-weight:600; color:var(--text-primary)}
+  .callout{
+    background:var(--surface-1); border:1px solid var(--border); border-radius:12px;
+    padding:16px 18px; font-size:13.5px; color:var(--text-secondary); margin-bottom:22px;
+  }
+  .callout strong{color:var(--text-primary); font-weight:600}
+  .card{
+    background:var(--surface-1); border:1px solid var(--border); border-radius:12px;
+    padding:18px 20px 12px; margin-bottom:16px;
+  }
+  .card h2{font-size:15px; margin:0 0 3px; font-weight:600}
+  .card .desc{font-size:12.5px; color:var(--muted); margin:0 0 8px}
+  .legend{display:flex; flex-wrap:wrap; gap:14px; margin:6px 0 4px; font-size:12px; color:var(--text-secondary)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .legend i{width:14px; height:2px; border-radius:1px; display:inline-block; flex:none}
+  .k1{background:var(--series-1)} .k2{background:var(--series-2)}
+  .k3{background:var(--series-3)} .k4{background:var(--series-4)}
+  .chart{position:relative; width:100%}
+  .chart svg{display:block; width:100%; height:auto; overflow:visible}
+  .tooltip{
+    position:absolute; pointer-events:none; opacity:0; transition:opacity .1s;
+    background:var(--surface-1); border:1px solid var(--border); border-radius:8px;
+    box-shadow:0 6px 20px rgba(0,0,0,.12); padding:9px 11px; font-size:12px;
+    min-width:140px; z-index:3;
+  }
+  .tooltip .td{color:var(--muted); margin-bottom:5px}
+  .tooltip .tr{display:flex; align-items:baseline; justify-content:space-between; gap:14px; margin-top:3px}
+  .tooltip .tk{display:flex; align-items:center; gap:6px; color:var(--text-secondary)}
+  .tooltip .key{width:12px; height:2px; border-radius:1px; flex:none}
+  .tooltip .tv{font-weight:650; color:var(--text-primary); font-variant-numeric:tabular-nums}
+  details{margin-top:4px}
+  summary{
+    cursor:pointer; font-size:12.5px; color:var(--text-secondary);
+    padding:8px 0 4px; user-select:none;
+  }
+  summary:hover{color:var(--text-primary)}
+  .tablewrap{max-height:340px; overflow:auto; border-top:1px solid var(--grid); margin-top:6px}
+  table{border-collapse:collapse; width:100%; font-size:12.5px}
+  th,td{padding:7px 10px; text-align:right; border-bottom:1px solid var(--grid); font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  th{position:sticky; top:0; background:var(--surface-1); color:var(--muted); font-weight:500}
+  footer{color:var(--muted); font-size:11.5px; line-height:1.7; margin-top:26px}
+  svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>沪深300 估值看板</h1>
+      <p class="sub">数据截至 <span id="asof"></span> · 月末口径 · 乐咕乐股 / 中证指数 / 中债</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button">切换主题</button>
+  </header>
+
+  <section class="tiles" aria-label="核心估值指标">
+    <div class="tile">
+      <div class="label">收盘点位</div>
+      <div class="value" id="v-close"></div>
+      <div class="note">距 2007 年历史高点 <b id="v-dd"></b></div>
+    </div>
+    <div class="tile">
+      <div class="label">PE-TTM（整体法）</div>
+      <div class="value" id="v-pe"></div>
+      <div class="note">近十年分位 <b id="v-pe-pct"></b> · EPS 同比 <b id="v-eps"></b></div>
+    </div>
+    <div class="tile">
+      <div class="label">PB（整体法）</div>
+      <div class="value" id="v-pb"></div>
+      <div class="note">近十年分位 <b id="v-pb-pct"></b> · ROE <b id="v-roe"></b></div>
+    </div>
+    <div class="tile">
+      <div class="label">股权风险溢价 ERP</div>
+      <div class="value" id="v-erp"></div>
+      <div class="note">近十年分位 <b id="v-erp-pct"></b> · 10Y 国债 <b id="v-y10"></b></div>
+    </div>
+  </section>
+
+  <div class="callout" id="callout"></div>
+
+  <section class="card">
+    <h2>指数点位、PE-TTM 与历史分位</h2>
+    <p class="desc" id="desc-pe"></p>
+    <div class="chart" id="chart-pe">
+      <svg id="svg-pe" role="img" aria-label="沪深300 点位、PE-TTM 与近十年滚动分位"></svg>
+      <div class="tooltip" id="tip-pe"></div>
+    </div>
+    <details>
+      <summary>查看数据表</summary>
+      <div class="tablewrap"><table id="tbl-pe">
+        <thead><tr><th>月份</th><th>点位</th><th>PE-TTM</th><th>近十年分位</th><th>10Y 国债</th><th>ERP</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>盈利收益率、ERP、股息率与 10 年国债</h2>
+    <p class="desc">四项均为百分比，可同轴比较。ERP = 盈利收益率 − 10 年国债；ERP 越高，股票相对债券越便宜。</p>
+    <div class="legend" aria-label="图例">
+      <span><i class="k1"></i>股权风险溢价 ERP</span>
+      <span><i class="k2"></i>盈利收益率 E/P</span>
+      <span><i class="k3"></i>股息率（全收益指数推算）</span>
+      <span><i class="k4"></i>10 年期国债</span>
+    </div>
+    <div class="chart" id="chart-erp">
+      <svg id="svg-erp" role="img" aria-label="沪深300 股权风险溢价、盈利收益率、股息率与十年国债"></svg>
+      <div class="tooltip" id="tip-erp"></div>
+    </div>
+    <details>
+      <summary>查看数据表</summary>
+      <div class="tablewrap"><table id="tbl-erp">
+        <thead><tr><th>月份</th><th>ERP</th><th>E/P</th><th>股息率*</th><th>10Y 国债</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>EPS、ROE、PE 与 PB</h2>
+    <p class="desc" id="desc-eps"></p>
+    <div class="chart" id="chart-eps">
+      <svg id="svg-eps" role="img" aria-label="沪深300 EPS、ROE、PE 与 PB 近十年走势"></svg>
+      <div class="tooltip" id="tip-eps"></div>
+    </div>
+    <details>
+      <summary>查看数据表</summary>
+      <div class="tablewrap"><table id="tbl-eps">
+        <thead><tr><th>月份</th><th>EPS（元）</th><th>ROE</th><th>PE-TTM</th><th>PB</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </details>
+  </section>
+
+  <footer>
+    口径：PE/PB 为整体法（总市值 / 总盈利、总净资产），来自乐咕乐股月末数据；ERP = 1/PE-TTM − 10 年期中国国债收益率；
+    EPS = 指数点位 ÷ PE-TTM；ROE = PB ÷ PE。分位为每个时点在过去 120 个月样本中的位置。
+    股息率*为沪深300全收益指数（H00300）与价格指数（000300）之比推算的近 12 个月已实施分红回报，与中证官网口径（<span id="dy-off"></span>）存在差异，仅用于观察趋势。
+    中证指数官网口径与乐咕存在差异（成分权重、盈利口径不同），请勿混用。本页面仅用于估值研究，不构成投资建议。
+  </footer>
+</div>
+
+<script>
+const DATA = {"rows": [{"d": "2016-10", "close": 3336.28, "pe": 12.08, "pe_pct": 43.3, "ep": 8.28, "erp": 5.54, "y10": 2.74, "dy": 2.29, "eps": 276.2, "roe": 11.84, "pb": 1.43}, {"d": "2016-11", "close": 3538.0, "pe": 12.75, "pe_pct": 49.2, "ep": 7.84, "erp": 4.89, "y10": 2.95, "dy": 2.29, "eps": 277.5, "roe": 11.84, "pb": 1.51}, {"d": "2016-12", "close": 3310.08, "pe": 12.31, "pe_pct": 44.2, "ep": 8.12, "erp": 5.11, "y10": 3.01, "dy": 2.28, "eps": 268.9, "roe": 11.86, "pb": 1.46}, {"d": "2017-01", "close": 3387.96, "pe": 12.78, "pe_pct": 50.8, "ep": 7.82, "erp": 4.48, "y10": 3.35, "dy": 2.28, "eps": 265.1, "roe": 11.74, "pb": 1.5}, {"d": "2017-02", "close": 3452.81, "pe": 12.97, "pe_pct": 53.3, "ep": 7.71, "erp": 4.42, "y10": 3.29, "dy": 2.25, "eps": 266.2, "roe": 11.8, "pb": 1.53}, {"d": "2017-03", "close": 3456.05, "pe": 12.85, "pe_pct": 52.5, "ep": 7.78, "erp": 4.5, "y10": 3.28, "dy": 2.28, "eps": 269.0, "roe": 11.75, "pb": 1.51}, {"d": "2017-04", "close": 3439.75, "pe": 12.69, "pe_pct": 49.2, "ep": 7.88, "erp": 4.41, "y10": 3.47, "dy": 2.23, "eps": 271.1, "roe": 11.66, "pb": 1.48}, {"d": "2017-05", "close": 3492.88, "pe": 12.85, "pe_pct": 54.2, "ep": 7.78, "erp": 4.17, "y10": 3.61, "dy": 2.26, "eps": 271.8, "roe": 11.67, "pb": 1.5}, {"d": "2017-06", "close": 3666.8, "pe": 13.39, "pe_pct": 59.2, "ep": 7.47, "erp": 3.9, "y10": 3.57, "dy": 2.19, "eps": 273.8, "roe": 11.8, "pb": 1.58}, {"d": "2017-07", "close": 3737.87, "pe": 13.78, "pe_pct": 61.7, "ep": 7.26, "erp": 3.63, "y10": 3.63, "dy": 2.01, "eps": 271.3, "roe": 11.97, "pb": 1.65}, {"d": "2017-08", "close": 3822.09, "pe": 13.88, "pe_pct": 63.3, "ep": 7.2, "erp": 3.58, "y10": 3.63, "dy": 2.03, "eps": 275.4, "roe": 11.89, "pb": 1.65}, {"d": "2017-09", "close": 3836.5, "pe": 13.83, "pe_pct": 63.3, "ep": 7.23, "erp": 3.62, "y10": 3.61, "dy": 2.04, "eps": 277.4, "roe": 11.93, "pb": 1.65}, {"d": "2017-10", "close": 4006.72, "pe": 13.84, "pe_pct": 64.2, "ep": 7.23, "erp": 3.33, "y10": 3.89, "dy": 2.04, "eps": 289.5, "roe": 11.92, "pb": 1.65}, {"d": "2017-11", "close": 4006.1, "pe": 13.81, "pe_pct": 62.5, "ep": 7.24, "erp": 3.35, "y10": 3.89, "dy": 2.04, "eps": 290.1, "roe": 11.88, "pb": 1.64}, {"d": "2017-12", "close": 4030.85, "pe": 14.05, "pe_pct": 66.7, "ep": 7.12, "erp": 3.24, "y10": 3.88, "dy": 2.03, "eps": 286.9, "roe": 11.81, "pb": 1.66}, {"d": "2018-01", "close": 4275.9, "pe": 15.19, "pe_pct": 75.8, "ep": 6.58, "erp": 2.67, "y10": 3.91, "dy": 2.05, "eps": 281.5, "roe": 11.78, "pb": 1.79}, {"d": "2018-02", "close": 4023.64, "pe": 14.12, "pe_pct": 67.5, "ep": 7.08, "erp": 3.26, "y10": 3.82, "dy": 2.05, "eps": 285.0, "roe": 11.83, "pb": 1.67}, {"d": "2018-03", "close": 3898.5, "pe": 13.37, "pe_pct": 59.2, "ep": 7.48, "erp": 3.74, "y10": 3.74, "dy": 2.03, "eps": 291.6, "roe": 11.89, "pb": 1.59}, {"d": "2018-04", "close": 3756.88, "pe": 12.74, "pe_pct": 50.8, "ep": 7.85, "erp": 4.21, "y10": 3.64, "dy": 2.02, "eps": 294.9, "roe": 11.93, "pb": 1.52}, {"d": "2018-05", "close": 3802.38, "pe": 12.55, "pe_pct": 49.2, "ep": 7.97, "erp": 4.36, "y10": 3.61, "dy": 2.03, "eps": 303.0, "roe": 11.95, "pb": 1.5}, {"d": "2018-06", "close": 3510.98, "pe": 11.81, "pe_pct": 40.8, "ep": 8.47, "erp": 4.99, "y10": 3.48, "dy": 2.18, "eps": 297.3, "roe": 12.19, "pb": 1.44}, {"d": "2018-07", "close": 3517.66, "pe": 11.93, "pe_pct": 41.7, "ep": 8.38, "erp": 4.9, "y10": 3.48, "dy": 2.16, "eps": 294.9, "roe": 12.49, "pb": 1.49}, {"d": "2018-08", "close": 3334.5, "pe": 11.09, "pe_pct": 30.8, "ep": 9.02, "erp": 5.44, "y10": 3.58, "dy": 2.19, "eps": 300.7, "roe": 12.53, "pb": 1.39}, {"d": "2018-09", "close": 3438.86, "pe": 11.58, "pe_pct": 40.0, "ep": 8.64, "erp": 5.02, "y10": 3.62, "dy": 2.2, "eps": 297.0, "roe": 12.52, "pb": 1.45}, {"d": "2018-10", "close": 3153.82, "pe": 10.6, "pe_pct": 26.7, "ep": 9.43, "erp": 5.93, "y10": 3.51, "dy": 2.22, "eps": 297.5, "roe": 12.17, "pb": 1.29}, {"d": "2018-11", "close": 3172.69, "pe": 10.44, "pe_pct": 25.0, "ep": 9.58, "erp": 6.22, "y10": 3.35, "dy": 2.23, "eps": 303.9, "roe": 12.16, "pb": 1.27}, {"d": "2018-12", "close": 3010.65, "pe": 10.09, "pe_pct": 21.7, "ep": 9.91, "erp": 6.68, "y10": 3.23, "dy": 2.24, "eps": 298.4, "roe": 12.39, "pb": 1.25}, {"d": "2019-01", "close": 3201.63, "pe": 10.74, "pe_pct": 30.8, "ep": 9.31, "erp": 6.21, "y10": 3.1, "dy": 2.22, "eps": 298.1, "roe": 12.29, "pb": 1.32}, {"d": "2019-02", "close": 3669.37, "pe": 12.06, "pe_pct": 49.2, "ep": 8.29, "erp": 5.12, "y10": 3.17, "dy": 2.25, "eps": 304.3, "roe": 12.19, "pb": 1.47}, {"d": "2019-03", "close": 3872.34, "pe": 12.5, "pe_pct": 55.0, "ep": 8.0, "erp": 4.93, "y10": 3.07, "dy": 2.25, "eps": 309.8, "roe": 12.08, "pb": 1.51}, {"d": "2019-04", "close": 3913.21, "pe": 12.27, "pe_pct": 50.8, "ep": 8.15, "erp": 4.76, "y10": 3.39, "dy": 2.3, "eps": 318.9, "roe": 11.9, "pb": 1.46}, {"d": "2019-05", "close": 3629.79, "pe": 11.48, "pe_pct": 43.3, "ep": 8.71, "erp": 5.44, "y10": 3.28, "dy": 2.44, "eps": 316.2, "roe": 11.93, "pb": 1.37}, {"d": "2019-06", "close": 3825.59, "pe": 12.22, "pe_pct": 51.7, "ep": 8.18, "erp": 4.96, "y10": 3.23, "dy": 2.34, "eps": 313.1, "roe": 12.11, "pb": 1.48}, {"d": "2019-07", "close": 3835.36, "pe": 12.14, "pe_pct": 51.7, "ep": 8.24, "erp": 5.08, "y10": 3.16, "dy": 2.32, "eps": 315.9, "roe": 12.19, "pb": 1.48}, {"d": "2019-08", "close": 3799.59, "pe": 11.7, "pe_pct": 46.7, "ep": 8.55, "erp": 5.49, "y10": 3.06, "dy": 2.32, "eps": 324.8, "roe": 12.39, "pb": 1.45}, {"d": "2019-09", "close": 3814.53, "pe": 11.72, "pe_pct": 47.5, "ep": 8.53, "erp": 5.39, "y10": 3.14, "dy": 2.31, "eps": 325.5, "roe": 12.37, "pb": 1.45}, {"d": "2019-10", "close": 3886.75, "pe": 11.67, "pe_pct": 45.0, "ep": 8.57, "erp": 5.28, "y10": 3.29, "dy": 2.29, "eps": 333.1, "roe": 12.17, "pb": 1.42}, {"d": "2019-11", "close": 3828.67, "pe": 11.46, "pe_pct": 43.3, "ep": 8.73, "erp": 5.56, "y10": 3.17, "dy": 2.29, "eps": 334.1, "roe": 12.22, "pb": 1.4}, {"d": "2019-12", "close": 4096.58, "pe": 12.3, "pe_pct": 57.5, "ep": 8.13, "erp": 4.99, "y10": 3.14, "dy": 2.29, "eps": 333.1, "roe": 12.2, "pb": 1.5}, {"d": "2020-01", "close": 4003.9, "pe": 11.96, "pe_pct": 51.7, "ep": 8.36, "erp": 5.37, "y10": 2.99, "dy": 2.29, "eps": 334.8, "roe": 12.12, "pb": 1.45}, {"d": "2020-02", "close": 3940.05, "pe": 11.57, "pe_pct": 45.0, "ep": 8.64, "erp": 5.91, "y10": 2.74, "dy": 2.26, "eps": 340.5, "roe": 12.19, "pb": 1.41}, {"d": "2020-03", "close": 3686.16, "pe": 10.85, "pe_pct": 33.3, "ep": 9.22, "erp": 6.63, "y10": 2.59, "dy": 2.26, "eps": 339.7, "roe": 12.17, "pb": 1.32}, {"d": "2020-04", "close": 3912.58, "pe": 11.77, "pe_pct": 51.7, "ep": 8.5, "erp": 5.96, "y10": 2.54, "dy": 2.23, "eps": 332.4, "roe": 11.47, "pb": 1.35}, {"d": "2020-05", "close": 3867.02, "pe": 11.6, "pe_pct": 47.5, "ep": 8.62, "erp": 5.92, "y10": 2.71, "dy": 2.14, "eps": 333.4, "roe": 11.47, "pb": 1.33}, {"d": "2020-06", "close": 4163.96, "pe": 12.38, "pe_pct": 64.2, "ep": 8.08, "erp": 5.25, "y10": 2.82, "dy": 2.25, "eps": 336.3, "roe": 11.55, "pb": 1.43}, {"d": "2020-07", "close": 4695.05, "pe": 13.67, "pe_pct": 81.7, "ep": 7.32, "erp": 4.35, "y10": 2.97, "dy": 2.16, "eps": 343.5, "roe": 11.78, "pb": 1.61}, {"d": "2020-08", "close": 4816.22, "pe": 14.45, "pe_pct": 90.0, "ep": 6.92, "erp": 3.9, "y10": 3.02, "dy": 2.08, "eps": 333.3, "roe": 11.7, "pb": 1.69}, {"d": "2020-09", "close": 4587.4, "pe": 13.87, "pe_pct": 86.7, "ep": 7.21, "erp": 4.06, "y10": 3.15, "dy": 2.06, "eps": 330.7, "roe": 11.61, "pb": 1.61}, {"d": "2020-10", "close": 4695.33, "pe": 13.92, "pe_pct": 88.3, "ep": 7.18, "erp": 4.0, "y10": 3.18, "dy": 2.06, "eps": 337.3, "roe": 11.28, "pb": 1.57}, {"d": "2020-11", "close": 4960.25, "pe": 14.71, "pe_pct": 93.3, "ep": 6.8, "erp": 3.55, "y10": 3.25, "dy": 2.11, "eps": 337.2, "roe": 11.15, "pb": 1.64}, {"d": "2020-12", "close": 5211.29, "pe": 15.66, "pe_pct": 97.5, "ep": 6.39, "erp": 3.24, "y10": 3.14, "dy": 2.11, "eps": 332.8, "roe": 11.24, "pb": 1.76}, {"d": "2021-01", "close": 5351.96, "pe": 15.95, "pe_pct": 97.5, "ep": 6.27, "erp": 3.09, "y10": 3.18, "dy": 2.11, "eps": 335.5, "roe": 11.22, "pb": 1.79}, {"d": "2021-02", "close": 5336.76, "pe": 15.87, "pe_pct": 96.7, "ep": 6.3, "erp": 3.02, "y10": 3.28, "dy": 2.11, "eps": 336.3, "roe": 11.22, "pb": 1.78}, {"d": "2021-03", "close": 5048.36, "pe": 14.61, "pe_pct": 93.3, "ep": 6.84, "erp": 3.66, "y10": 3.19, "dy": 2.11, "eps": 345.5, "roe": 11.5, "pb": 1.68}, {"d": "2021-04", "close": 5123.49, "pe": 13.52, "pe_pct": 81.7, "ep": 7.4, "erp": 4.23, "y10": 3.16, "dy": 2.19, "eps": 379.0, "roe": 11.98, "pb": 1.62}, {"d": "2021-05", "close": 5331.57, "pe": 14.09, "pe_pct": 90.0, "ep": 7.1, "erp": 4.05, "y10": 3.04, "dy": 2.0, "eps": 378.4, "roe": 11.99, "pb": 1.69}, {"d": "2021-06", "close": 5224.04, "pe": 14.32, "pe_pct": 90.8, "ep": 6.98, "erp": 3.91, "y10": 3.08, "dy": 1.8, "eps": 364.8, "roe": 12.08, "pb": 1.73}, {"d": "2021-07", "close": 4811.17, "pe": 13.12, "pe_pct": 77.5, "ep": 7.62, "erp": 4.79, "y10": 2.84, "dy": 1.73, "eps": 366.7, "roe": 12.42, "pb": 1.63}, {"d": "2021-08", "close": 4805.61, "pe": 12.41, "pe_pct": 65.0, "ep": 8.06, "erp": 5.21, "y10": 2.85, "dy": 1.81, "eps": 387.2, "roe": 12.89, "pb": 1.6}, {"d": "2021-09", "close": 4866.38, "pe": 12.61, "pe_pct": 68.3, "ep": 7.93, "erp": 5.05, "y10": 2.88, "dy": 1.77, "eps": 385.9, "roe": 12.93, "pb": 1.63}, {"d": "2021-10", "close": 4908.77, "pe": 12.67, "pe_pct": 68.3, "ep": 7.89, "erp": 4.92, "y10": 2.97, "dy": 1.83, "eps": 387.4, "roe": 12.71, "pb": 1.61}, {"d": "2021-11", "close": 4832.03, "pe": 12.25, "pe_pct": 57.5, "ep": 8.16, "erp": 5.34, "y10": 2.83, "dy": 1.78, "eps": 394.5, "roe": 12.65, "pb": 1.55}, {"d": "2021-12", "close": 4940.37, "pe": 13.37, "pe_pct": 78.3, "ep": 7.48, "erp": 4.7, "y10": 2.78, "dy": 1.77, "eps": 369.5, "roe": 12.64, "pb": 1.69}, {"d": "2022-01", "close": 4563.77, "pe": 12.44, "pe_pct": 63.3, "ep": 8.04, "erp": 5.34, "y10": 2.7, "dy": 1.77, "eps": 366.9, "roe": 12.7, "pb": 1.58}, {"d": "2022-02", "close": 4581.65, "pe": 12.57, "pe_pct": 65.8, "ep": 7.96, "erp": 5.18, "y10": 2.77, "dy": 1.77, "eps": 364.5, "roe": 12.57, "pb": 1.58}, {"d": "2022-03", "close": 4222.6, "pe": 11.72, "pe_pct": 46.7, "ep": 8.53, "erp": 5.74, "y10": 2.79, "dy": 1.77, "eps": 360.3, "roe": 12.37, "pb": 1.45}, {"d": "2022-04", "close": 4016.24, "pe": 11.21, "pe_pct": 33.3, "ep": 8.92, "erp": 6.08, "y10": 2.84, "dy": 1.75, "eps": 358.3, "roe": 12.31, "pb": 1.38}, {"d": "2022-05", "close": 4091.52, "pe": 11.32, "pe_pct": 35.0, "ep": 8.83, "erp": 6.09, "y10": 2.74, "dy": 1.84, "eps": 361.4, "roe": 12.19, "pb": 1.38}, {"d": "2022-06", "close": 4485.01, "pe": 12.31, "pe_pct": 57.5, "ep": 8.12, "erp": 5.3, "y10": 2.82, "dy": 2.03, "eps": 364.3, "roe": 12.35, "pb": 1.52}, {"d": "2022-07", "close": 4170.1, "pe": 11.44, "pe_pct": 36.7, "ep": 8.74, "erp": 5.99, "y10": 2.76, "dy": 2.12, "eps": 364.5, "roe": 12.59, "pb": 1.44}, {"d": "2022-08", "close": 4078.84, "pe": 11.02, "pe_pct": 28.3, "ep": 9.07, "erp": 6.45, "y10": 2.62, "dy": 2.11, "eps": 370.1, "roe": 12.52, "pb": 1.38}, {"d": "2022-09", "close": 3804.89, "pe": 10.47, "pe_pct": 23.3, "ep": 9.55, "erp": 6.79, "y10": 2.76, "dy": 2.14, "eps": 363.4, "roe": 12.51, "pb": 1.31}, {"d": "2022-10", "close": 3508.7, "pe": 9.61, "pe_pct": 15.8, "ep": 10.41, "erp": 7.76, "y10": 2.64, "dy": 2.13, "eps": 365.1, "roe": 12.28, "pb": 1.18}, {"d": "2022-11", "close": 3853.04, "pe": 10.57, "pe_pct": 24.2, "ep": 9.46, "erp": 6.58, "y10": 2.88, "dy": 2.14, "eps": 364.5, "roe": 12.3, "pb": 1.3}, {"d": "2022-12", "close": 3871.63, "pe": 10.59, "pe_pct": 24.2, "ep": 9.44, "erp": 6.61, "y10": 2.84, "dy": 2.29, "eps": 365.6, "roe": 12.46, "pb": 1.32}, {"d": "2023-01", "close": 4156.86, "pe": 11.26, "pe_pct": 31.7, "ep": 8.88, "erp": 5.98, "y10": 2.9, "dy": 2.3, "eps": 369.2, "roe": 12.34, "pb": 1.39}, {"d": "2023-02", "close": 4069.46, "pe": 11.17, "pe_pct": 29.2, "ep": 8.95, "erp": 6.05, "y10": 2.9, "dy": 2.32, "eps": 364.3, "roe": 12.26, "pb": 1.37}, {"d": "2023-03", "close": 4050.93, "pe": 11.27, "pe_pct": 31.7, "ep": 8.87, "erp": 6.02, "y10": 2.85, "dy": 2.32, "eps": 359.4, "roe": 12.16, "pb": 1.37}, {"d": "2023-04", "close": 4029.09, "pe": 11.47, "pe_pct": 37.5, "ep": 8.72, "erp": 5.94, "y10": 2.78, "dy": 2.3, "eps": 351.3, "roe": 12.12, "pb": 1.39}, {"d": "2023-05", "close": 3798.54, "pe": 10.93, "pe_pct": 25.0, "ep": 9.15, "erp": 6.46, "y10": 2.69, "dy": 2.27, "eps": 347.5, "roe": 11.89, "pb": 1.3}, {"d": "2023-06", "close": 3842.45, "pe": 10.97, "pe_pct": 25.0, "ep": 9.12, "erp": 6.48, "y10": 2.64, "dy": 2.5, "eps": 350.3, "roe": 12.03, "pb": 1.32}, {"d": "2023-07", "close": 4014.63, "pe": 11.36, "pe_pct": 33.3, "ep": 8.8, "erp": 6.14, "y10": 2.66, "dy": 2.6, "eps": 353.4, "roe": 12.32, "pb": 1.4}, {"d": "2023-08", "close": 3765.27, "pe": 10.99, "pe_pct": 24.2, "ep": 9.1, "erp": 6.54, "y10": 2.56, "dy": 2.56, "eps": 342.6, "roe": 11.74, "pb": 1.29}, {"d": "2023-09", "close": 3689.52, "pe": 10.87, "pe_pct": 21.7, "ep": 9.2, "erp": 6.52, "y10": 2.68, "dy": 2.56, "eps": 339.4, "roe": 11.78, "pb": 1.28}, {"d": "2023-10", "close": 3572.51, "pe": 10.64, "pe_pct": 19.2, "ep": 9.4, "erp": 6.7, "y10": 2.69, "dy": 2.57, "eps": 335.8, "roe": 11.37, "pb": 1.21}, {"d": "2023-11", "close": 3496.2, "pe": 10.48, "pe_pct": 15.8, "ep": 9.54, "erp": 6.87, "y10": 2.67, "dy": 2.58, "eps": 333.6, "roe": 11.35, "pb": 1.19}, {"d": "2023-12", "close": 3431.11, "pe": 10.38, "pe_pct": 12.5, "ep": 9.63, "erp": 7.08, "y10": 2.56, "dy": 2.53, "eps": 330.6, "roe": 11.46, "pb": 1.19}, {"d": "2024-01", "close": 3215.35, "pe": 10.16, "pe_pct": 10.8, "ep": 9.84, "erp": 7.41, "y10": 2.43, "dy": 2.52, "eps": 316.5, "roe": 11.42, "pb": 1.16}, {"d": "2024-02", "close": 3516.08, "pe": 10.91, "pe_pct": 21.7, "ep": 9.17, "erp": 6.83, "y10": 2.34, "dy": 2.5, "eps": 322.3, "roe": 11.46, "pb": 1.25}, {"d": "2024-03", "close": 3537.48, "pe": 11.21, "pe_pct": 27.5, "ep": 8.92, "erp": 6.63, "y10": 2.29, "dy": 2.5, "eps": 315.6, "roe": 11.06, "pb": 1.24}, {"d": "2024-04", "close": 3604.39, "pe": 11.63, "pe_pct": 40.8, "ep": 8.6, "erp": 6.3, "y10": 2.3, "dy": 2.57, "eps": 309.9, "roe": 10.66, "pb": 1.24}, {"d": "2024-05", "close": 3579.92, "pe": 11.57, "pe_pct": 38.3, "ep": 8.64, "erp": 6.35, "y10": 2.29, "dy": 2.62, "eps": 309.4, "roe": 10.63, "pb": 1.23}, {"d": "2024-06", "close": 3461.66, "pe": 11.48, "pe_pct": 36.7, "ep": 8.71, "erp": 6.51, "y10": 2.21, "dy": 2.47, "eps": 301.5, "roe": 10.8, "pb": 1.24}, {"d": "2024-07", "close": 3442.08, "pe": 11.32, "pe_pct": 29.2, "ep": 8.83, "erp": 6.68, "y10": 2.15, "dy": 2.81, "eps": 304.1, "roe": 11.04, "pb": 1.25}, {"d": "2024-08", "close": 3321.43, "pe": 10.86, "pe_pct": 15.8, "ep": 9.21, "erp": 7.04, "y10": 2.17, "dy": 2.88, "eps": 305.8, "roe": 11.23, "pb": 1.22}, {"d": "2024-09", "close": 4017.85, "pe": 12.65, "pe_pct": 66.7, "ep": 7.91, "erp": 5.75, "y10": 2.15, "dy": 2.94, "eps": 317.6, "roe": 11.07, "pb": 1.4}, {"d": "2024-10", "close": 3891.04, "pe": 11.65, "pe_pct": 40.0, "ep": 8.58, "erp": 6.44, "y10": 2.15, "dy": 3.02, "eps": 334.0, "roe": 11.16, "pb": 1.3}, {"d": "2024-11", "close": 3916.58, "pe": 11.75, "pe_pct": 45.0, "ep": 8.51, "erp": 6.49, "y10": 2.02, "dy": 3.09, "eps": 333.3, "roe": 11.15, "pb": 1.31}, {"d": "2024-12", "close": 3934.91, "pe": 12.19, "pe_pct": 52.5, "ep": 8.2, "erp": 6.53, "y10": 1.68, "dy": 3.1, "eps": 322.8, "roe": 11.16, "pb": 1.36}, {"d": "2025-01", "close": 3817.08, "pe": 11.74, "pe_pct": 45.0, "ep": 8.52, "erp": 6.89, "y10": 1.63, "dy": 3.33, "eps": 325.1, "roe": 11.24, "pb": 1.32}, {"d": "2025-02", "close": 3890.05, "pe": 11.82, "pe_pct": 48.3, "ep": 8.46, "erp": 6.75, "y10": 1.72, "dy": 3.33, "eps": 329.1, "roe": 11.25, "pb": 1.33}, {"d": "2025-03", "close": 3887.31, "pe": 11.78, "pe_pct": 47.5, "ep": 8.49, "erp": 6.68, "y10": 1.81, "dy": 3.33, "eps": 330.0, "roe": 11.12, "pb": 1.31}, {"d": "2025-04", "close": 3770.57, "pe": 11.49, "pe_pct": 35.0, "ep": 8.7, "erp": 7.08, "y10": 1.62, "dy": 3.36, "eps": 328.2, "roe": 10.97, "pb": 1.26}, {"d": "2025-05", "close": 3840.23, "pe": 11.73, "pe_pct": 45.8, "ep": 8.53, "erp": 6.85, "y10": 1.67, "dy": 3.3, "eps": 327.4, "roe": 11.0, "pb": 1.29}, {"d": "2025-06", "close": 3936.08, "pe": 12.34, "pe_pct": 62.5, "ep": 8.1, "erp": 6.46, "y10": 1.65, "dy": 3.29, "eps": 319.0, "roe": 10.94, "pb": 1.35}, {"d": "2025-07", "close": 4075.59, "pe": 12.44, "pe_pct": 68.3, "ep": 8.04, "erp": 6.33, "y10": 1.7, "dy": 2.8, "eps": 327.6, "roe": 11.09, "pb": 1.38}, {"d": "2025-08", "close": 4496.76, "pe": 13.23, "pe_pct": 80.8, "ep": 7.56, "erp": 5.72, "y10": 1.84, "dy": 2.71, "eps": 339.9, "roe": 11.04, "pb": 1.46}, {"d": "2025-09", "close": 4640.69, "pe": 13.32, "pe_pct": 80.8, "ep": 7.51, "erp": 5.65, "y10": 1.86, "dy": 2.72, "eps": 348.4, "roe": 10.89, "pb": 1.45}, {"d": "2025-10", "close": 4640.67, "pe": 13.19, "pe_pct": 79.2, "ep": 7.58, "erp": 5.79, "y10": 1.8, "dy": 2.77, "eps": 351.8, "roe": 10.99, "pb": 1.45}, {"d": "2025-11", "close": 4526.66, "pe": 13.04, "pe_pct": 77.5, "ep": 7.67, "erp": 5.83, "y10": 1.84, "dy": 2.75, "eps": 347.1, "roe": 10.97, "pb": 1.43}, {"d": "2025-12", "close": 4629.94, "pe": 13.34, "pe_pct": 80.8, "ep": 7.5, "erp": 5.65, "y10": 1.85, "dy": 2.82, "eps": 347.1, "roe": 11.02, "pb": 1.47}, {"d": "2026-01", "close": 4706.34, "pe": 13.37, "pe_pct": 82.5, "ep": 7.48, "erp": 5.67, "y10": 1.81, "dy": 2.72, "eps": 352.0, "roe": 10.99, "pb": 1.47}, {"d": "2026-02", "close": 4710.65, "pe": 13.33, "pe_pct": 79.2, "ep": 7.5, "erp": 5.71, "y10": 1.79, "dy": 2.79, "eps": 353.4, "roe": 10.95, "pb": 1.46}, {"d": "2026-03", "close": 4450.05, "pe": 13.3, "pe_pct": 77.5, "ep": 7.52, "erp": 5.7, "y10": 1.82, "dy": 2.79, "eps": 334.6, "roe": 10.68, "pb": 1.42}, {"d": "2026-04", "close": 4807.31, "pe": 13.85, "pe_pct": 88.3, "ep": 7.22, "erp": 5.47, "y10": 1.75, "dy": 2.76, "eps": 347.1, "roe": 10.47, "pb": 1.45}, {"d": "2026-05", "close": 4892.12, "pe": 13.8, "pe_pct": 85.0, "ep": 7.25, "erp": 5.54, "y10": 1.71, "dy": 2.76, "eps": 354.5, "roe": 10.51, "pb": 1.45}, {"d": "2026-06", "close": 4979.43, "pe": 13.77, "pe_pct": 83.3, "ep": 7.26, "erp": 5.53, "y10": 1.73, "dy": 2.48, "eps": 361.6, "roe": 10.46, "pb": 1.44}, {"d": "2026-07", "close": 4588.2, "pe": 13.68, "pe_pct": 82.5, "ep": 7.31, "erp": 5.6, "y10": 1.71, "dy": 2.26, "eps": 335.4, "roe": 10.53, "pb": 1.44}, {"d": "2026-08", "close": 4625.09, "pe": 13.04, "pe_pct": 70.8, "ep": 7.67, "erp": 5.98, "y10": 1.69, "dy": 2.29, "eps": 354.7, "roe": 11.12, "pb": 1.45}, {"d": "2026-09", "close": 4357.62, "pe": 12.48, "pe_pct": 58.3, "ep": 8.01, "erp": 6.33, "y10": 1.68, "dy": 2.37, "eps": 349.2, "roe": 11.06, "pb": 1.38}, {"d": "2026-10", "close": 3985.5, "pe": 12.17, "pe_pct": 47.5, "ep": 8.22, "erp": 6.57, "y10": 1.65, "dy": 2.39, "eps": 327.5, "roe": 10.93, "pb": 1.33}], "stats": {"date": "2026-10-30", "close": 3985.5, "pe": 12.17, "pe_pct": 47.5, "pb": 1.33, "pb_pct": 27.5, "erp": 6.57, "erp_pct": 84.17, "dy_official": 3.05, "dy_derived": 2.39, "y10": 1.65, "y10_pct": 1.14, "eps_yoy": -6.9, "drawdown": -29.9, "roe": 10.93, "roe_pct": 8.3, "pe_band": [11.25, 13.42], "pe_median": 12.26, "erp_median": 5.58}};
+const S = DATA.stats, ROWS = DATA.rows;
+
+document.getElementById('asof').textContent = S.date;
+document.getElementById('dy-off').textContent = '最新 ' + S.dy_official.toFixed(2) + '%';
+document.getElementById('v-close').textContent = S.close.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2});
+document.getElementById('v-dd').textContent = S.drawdown.toFixed(1) + '%';
+document.getElementById('v-pe').textContent = S.pe.toFixed(2);
+document.getElementById('v-pe-pct').textContent = S.pe_pct.toFixed(1) + '%';
+document.getElementById('v-eps').textContent = S.eps_yoy.toFixed(1) + '%';
+document.getElementById('v-pb').textContent = S.pb.toFixed(2);
+document.getElementById('v-pb-pct').textContent = S.pb_pct.toFixed(1) + '%';
+document.getElementById('v-roe').textContent = S.roe.toFixed(1) + '%';
+document.getElementById('v-erp').textContent = S.erp.toFixed(2) + '%';
+document.getElementById('v-erp-pct').textContent = S.erp_pct.toFixed(1) + '%';
+document.getElementById('v-y10').textContent = S.y10.toFixed(2) + '%';
+
+document.getElementById('desc-pe').textContent =
+  `上：沪深300 点位；中：PE-TTM；下：该时点 PE 在过去 120 个月中的分位。阴影为当前近十年 20–80 分位区间（${S.pe_band[0].toFixed(2)}–${S.pe_band[1].toFixed(2)}），细线为中位数 ${S.pe_median.toFixed(2)}；分位图中的水平细线为 20%/80% 参考线。`;
+document.getElementById('desc-eps').textContent =
+  `EPS = 指数点位 ÷ PE-TTM；ROE = PB ÷ PE。四个指标量纲不同，分面板共用横轴。当前 ROE ${S.roe.toFixed(1)}%（近十年 ${S.roe_pct.toFixed(0)}% 分位）、PE ${S.pe.toFixed(2)}、PB ${S.pb.toFixed(2)}——PB 偏低主要是盈利能力下滑的结果。`;
+
+const callout = document.getElementById('callout');
+callout.append(
+  textEl('strong', '一句话读数：', ''),
+  document.createTextNode(
+    `PE-TTM ${S.pe.toFixed(2)} 处于近十年 ${S.pe_pct.toFixed(0)}% 分位——不算便宜；PB ${S.pb.toFixed(2)} 处于 ${S.pb_pct.toFixed(0)}% 分位，偏低，` +
+    `但 ROE 仅 ${S.roe.toFixed(1)}%（近十年 ${S.roe_pct.toFixed(0)}% 分位），低 PB 是盈利能力下滑的结果。` +
+    `ERP ${S.erp.toFixed(2)}% 位于 ${S.erp_pct.toFixed(0)}% 分位，主要由 10 年国债跌至 ${S.y10.toFixed(2)}%（历史极低）贡献；` +
+    `盈利收益率本身只处于历史中位。盈利端 EPS 同比 ${S.eps_yoy.toFixed(1)}%，估值便宜与否取决于盈利能否企稳。`
+  )
+);
+
+function textEl(tag, text, cls){
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  el.textContent = text;
+  return el;
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function s(tag, attrs){
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+function drawFigure(cfg){
+  const svg = document.getElementById(cfg.svgId);
+  const tip = document.getElementById(cfg.tipId);
+  const W = 760, ML = 48, MR = 98, MT = 16, MB = 30, GAP = 26;
+  const panels = cfg.panels;
+  const totalH = MT + MB + panels.reduce((a, p) => a + p.h, 0) + GAP * (panels.length - 1);
+  svg.setAttribute('viewBox', `0 0 ${W} ${totalH}`);
+  const rows = cfg.rows, n = rows.length;
+  const iw = W - ML - MR;
+  const x = i => ML + (n === 1 ? 0 : i / (n - 1)) * iw;
+
+  let top = MT;
+  panels.forEach(p => { p.top = top; top += p.h + GAP; });
+  const plotBottom = panels[panels.length - 1].top + panels[panels.length - 1].h;
+  const yFor = (p, v) => p.top + (p.domain[1] - v) / (p.domain[1] - p.domain[0]) * p.h;
+
+  panels.forEach(p => {
+    if (p.name){
+      const t = s('text', {x:ML, y:p.top-6, 'font-size':10.5, fill:'var(--muted)'});
+      t.textContent = p.name;
+      svg.appendChild(t);
+    }
+    // 网格线 + y 轴刻度
+    p.yticks.forEach(v => {
+      svg.appendChild(s('line', {x1:ML, x2:ML+iw, y1:yFor(p,v), y2:yFor(p,v), stroke:'var(--grid)', 'stroke-width':1}));
+      const t = s('text', {x:ML-9, y:yFor(p,v)+4, 'text-anchor':'end', 'font-size':11, fill:'var(--muted)'});
+      t.textContent = v + (p.unit || '');
+      svg.appendChild(t);
+    });
+    // 基线
+    svg.appendChild(s('line', {x1:ML, x2:ML+iw, y1:p.top+p.h, y2:p.top+p.h, stroke:'var(--axis)', 'stroke-width':1}));
+
+    // 分位区间阴影
+    if (p.band){
+      svg.appendChild(s('rect', {x:ML, y:yFor(p,p.band[1]), width:iw, height:yFor(p,p.band[0])-yFor(p,p.band[1]),
+        fill:'var(--wash)'}));
+    }
+    // 参考线（分位图 20/80）
+    (p.refs || []).forEach(v => {
+      svg.appendChild(s('line', {x1:ML, x2:ML+iw, y1:yFor(p,v), y2:yFor(p,v),
+        stroke:'var(--axis)', 'stroke-width':1, opacity:.55}));
+    });
+    // 中位线
+    if (p.median != null){
+      svg.appendChild(s('line', {x1:ML, x2:ML+iw, y1:yFor(p,p.median), y2:yFor(p,p.median),
+        stroke:'var(--muted)', 'stroke-width':1, opacity:.55}));
+    }
+
+    // 数据线
+    p.series.forEach(ser => {
+      let d = '';
+      rows.forEach((r, i) => {
+        const v = r[ser.key];
+        if (v == null || Number.isNaN(v)) return;
+        d += (d ? 'L' : 'M') + x(i).toFixed(1) + ' ' + yFor(p, v).toFixed(1);
+      });
+      svg.appendChild(s('path', {d, fill:'none', stroke:ser.color, 'stroke-width':2,
+        'stroke-linejoin':'round', 'stroke-linecap':'round'}));
+
+      const lv = rows[n-1][ser.key];
+      svg.appendChild(s('circle', {cx:x(n-1), cy:yFor(p,lv), r:4, fill:ser.color,
+        stroke:'var(--surface-1)', 'stroke-width':2}));
+      const lab = s('text', {x:x(n-1)+10, y:yFor(p,lv)+4, 'font-size':12, 'font-weight':600,
+        fill:'var(--text-primary)'});
+      lab.textContent = ser.fmt(lv);
+      svg.appendChild(lab);
+    });
+  });
+
+  // x 轴刻度：每两年一个 + 末端年份
+  const years = {};
+  rows.forEach((r, i) => {
+    const yr = r.d.slice(0,4);
+    if (r.d.slice(5) === '12' || i === 0) years[yr] = i;
+  });
+  years[rows[n-1].d.slice(0,4)] = n-1;
+  Object.keys(years).filter((_, k) => k % 2 === 0).forEach(yr => {
+    const i = years[yr];
+    svg.appendChild(s('line', {x1:x(i), x2:x(i), y1:plotBottom, y2:plotBottom+4, stroke:'var(--axis)', 'stroke-width':1}));
+    const t = s('text', {x:x(i), y:plotBottom+19, 'text-anchor':'middle', 'font-size':11, fill:'var(--muted)'});
+    t.textContent = yr;
+    svg.appendChild(t);
+  });
+
+  // 交互层
+  const overlay = s('rect', {x:ML, y:MT, width:iw, height:plotBottom-MT, fill:'transparent',
+    tabindex:0, role:'application', 'aria-label':cfg.aria});
+  const cross = s('line', {x1:0, x2:0, y1:MT, y2:plotBottom, stroke:'var(--axis)',
+    'stroke-width':1, opacity:0});
+  svg.appendChild(cross);
+  const dots = [];
+  panels.forEach(p => p.series.forEach(ser => {
+    const dot = s('circle', {r:4, fill:ser.color, stroke:'var(--surface-1)',
+      'stroke-width':2, opacity:0});
+    dots.push({dot, p, ser});
+    svg.appendChild(dot);
+  }));
+  svg.appendChild(overlay);
+
+  let cur = -1;
+  function show(i){
+    cur = Math.max(0, Math.min(n-1, i));
+    const r = rows[cur];
+    cross.setAttribute('x1', x(cur)); cross.setAttribute('x2', x(cur));
+    cross.setAttribute('opacity', 1);
+    dots.forEach(o => {
+      o.dot.setAttribute('cx', x(cur));
+      o.dot.setAttribute('cy', yFor(o.p, r[o.ser.key]));
+      o.dot.setAttribute('opacity', 1);
+    });
+
+    tip.textContent = '';
+    tip.appendChild(textEl('div', r.d, 'td'));
+    panels.forEach(p => p.series.forEach(ser => {
+      const row = document.createElement('div'); row.className = 'tr';
+      const k = document.createElement('span'); k.className = 'tk';
+      const key = document.createElement('span'); key.className = 'key';
+      key.style.background = ser.color;
+      k.appendChild(key); k.appendChild(document.createTextNode(ser.label));
+      const v = document.createElement('span'); v.className = 'tv';
+      v.textContent = ser.fmt(r[ser.key]);
+      row.appendChild(k); row.appendChild(v); tip.appendChild(row);
+    }));
+
+    const rect = svg.getBoundingClientRect();
+    const px = x(cur) / W * rect.width;
+    const py = yFor(panels[0], r[panels[0].series[0].key]) / totalH * rect.height;
+    tip.style.opacity = 1;
+    tip.style.left = Math.min(Math.max(px + 14, 8), Math.max(rect.width - 180, 8)) + 'px';
+    tip.style.top = Math.max(py - 10, 4) + 'px';
+  }
+  function hide(){
+    cross.setAttribute('opacity', 0);
+    dots.forEach(o => o.dot.setAttribute('opacity', 0));
+    tip.style.opacity = 0;
+  }
+
+  overlay.addEventListener('pointermove', e => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / rect.width * W;
+    show(Math.round((sx - ML) / iw * (n - 1)));
+  });
+  overlay.addEventListener('pointerdown', e => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / rect.width * W;
+    show(Math.round((sx - ML) / iw * (n - 1)));
+  });
+  overlay.addEventListener('pointerleave', hide);
+  overlay.addEventListener('focus', () => show(cur < 0 ? n-1 : cur));
+  overlay.addEventListener('blur', hide);
+  overlay.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft'){ show(cur - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight'){ show(cur + 1); e.preventDefault(); }
+  });
+}
+
+function fmtPct(v){ return v.toFixed(2) + '%'; }
+function fmtNum(v){ return v.toFixed(2); }
+function fmtOne(v){ return v.toFixed(1) + '%'; }
+
+// PE-TTM + 滚动分位
+drawFigure({
+  svgId:'svg-pe', tipId:'tip-pe', rows:ROWS, aria:'沪深300 PE-TTM 与近十年滚动分位',
+  panels:[
+    {h:116, domain:[2900,5500], yticks:[3000,3500,4000,4500,5000,5500], unit:'',
+     name:'沪深300 点位',
+     series:[{key:'close', color:'var(--series-1)', label:'收盘点位',
+              fmt:v=>v.toLocaleString('zh-CN',{maximumFractionDigits:0})}]},
+    {h:170, domain:[9,16.5], yticks:[10,12,14,16], unit:'', band:S.pe_band, median:S.pe_median,
+     name:'PE-TTM（倍）',
+     series:[{key:'pe', color:'var(--series-1)', label:'PE-TTM', fmt:fmtNum}]},
+    {h:74, domain:[0,100], yticks:[0,50,100], unit:'%', refs:[20,80],
+     name:'近十年滚动分位（%）',
+     series:[{key:'pe_pct', color:'var(--series-1)', label:'近十年分位', fmt:fmtOne}]}
+  ]
+});
+
+// ERP / E-P / 股息率 / 10Y
+drawFigure({
+  svgId:'svg-erp', tipId:'tip-erp', rows:ROWS, aria:'沪深300 股权风险溢价、盈利收益率、股息率与十年国债',
+  panels:[
+    {h:272, domain:[0,9.5], yticks:[0,2,4,6,8], unit:'%', median:S.erp_median,
+     series:[
+       {key:'erp', color:'var(--series-1)', label:'ERP', fmt:fmtPct},
+       {key:'ep',  color:'var(--series-2)', label:'盈利收益率', fmt:fmtPct},
+       {key:'dy',  color:'var(--series-3)', label:'股息率*', fmt:fmtPct},
+       {key:'y10', color:'var(--series-4)', label:'10Y 国债', fmt:fmtPct}
+     ]}
+  ]
+});
+
+// EPS + ROE
+drawFigure({
+  svgId:'svg-eps', tipId:'tip-eps', rows:ROWS, aria:'沪深300 EPS、ROE、PE 与 PB 近十年走势',
+  panels:[
+    {h:128, domain:[250,410], yticks:[250,300,350,400], unit:'',
+     name:'EPS（元）',
+     series:[{key:'eps', color:'var(--series-1)', label:'EPS（元）', fmt:v=>v.toFixed(0)}]},
+    {h:128, domain:[10,13.5], yticks:[10,11,12,13], unit:'%',
+     name:'ROE（%，PB ÷ PE）',
+     series:[{key:'roe', color:'var(--series-1)', label:'ROE', fmt:v=>v.toFixed(1)+'%'}]},
+    {h:128, domain:[9,16.5], yticks:[10,12,14,16], unit:'',
+     name:'PE-TTM（倍）',
+     series:[{key:'pe', color:'var(--series-1)', label:'PE-TTM', fmt:fmtNum}]},
+    {h:128, domain:[1.1,1.8], yticks:[1.2,1.4,1.6,1.8], unit:'',
+     name:'PB（倍）',
+     series:[{key:'pb', color:'var(--series-1)', label:'PB', fmt:fmtNum}]}
+  ]
+});
+
+// 数据表
+function fillTable(sel, cols){
+  const tb = document.querySelector(sel + ' tbody');
+  const frag = document.createDocumentFragment();
+  ROWS.slice().reverse().forEach(r => {
+    const tr = document.createElement('tr');
+    cols.forEach(c => {
+      const td = document.createElement('td');
+      td.textContent = c.fmt(r[c.key]);
+      tr.appendChild(td);
+    });
+    frag.appendChild(tr);
+  });
+  tb.appendChild(frag);
+}
+fillTable('#tbl-pe', [
+  {key:'d', fmt:v=>v}, {key:'close', fmt:v=>v.toFixed(0)}, {key:'pe', fmt:fmtNum},
+  {key:'pe_pct', fmt:fmtOne}, {key:'y10', fmt:fmtPct}, {key:'erp', fmt:fmtPct}
+]);
+fillTable('#tbl-erp', [
+  {key:'d', fmt:v=>v}, {key:'erp', fmt:fmtPct}, {key:'ep', fmt:fmtPct},
+  {key:'dy', fmt:fmtPct}, {key:'y10', fmt:fmtPct}
+]);
+fillTable('#tbl-eps', [
+  {key:'d', fmt:v=>v}, {key:'eps', fmt:v=>v.toFixed(1)}, {key:'roe', fmt:fmtPct},
+  {key:'pe', fmt:fmtNum}, {key:'pb', fmt:fmtNum}
+]);
+
+// 主题切换
+const btn = document.getElementById('themeBtn');
+btn.addEventListener('click', () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme === 'dark' ||
+    (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+  root.dataset.theme = dark ? 'light' : 'dark';
+});
+
+// PWA：仅 https 或 localhost 下注册；本地双击打开（file://）不会触发
+const swHost = ['localhost', '127.0.0.1'].includes(location.hostname);
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || swHost)) {
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
