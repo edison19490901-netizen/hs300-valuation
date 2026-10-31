@@ -12,7 +12,7 @@
 2. **相对债券贵不贵**：ERP、盈利收益率、股债利差；
 3. **盈利质量是否支撑估值**：EPS、ROE、净利润趋势。
 
-产出是一个单文件 HTML 看板 + 一份方法报告 + 可复现的 Python 脚本。
+产出是一个单文件 HTML 看板（可双击离线打开）+ 一个可安装的 PWA 在线版 + 一份方法报告 + 可复现的 Python 脚本。
 
 ---
 
@@ -55,6 +55,7 @@
 | `sw.js` | 离线缓存：页面导航联网优先，断网回退缓存 |
 | `300.png` / `300-192.png` / `300-512.png` / `300-maskable.png` / `apple-touch-icon.png` | App 图标（由 `300.png` 派生） |
 | `README.md` | 仓库首页说明与在线地址 |
+| `.nojekyll` | 让 GitHub Pages 跳过 Jekyll，静态文件原样发布 |
 | `沪深300估值报告.md` | 方法论 + 数据表 + 解读 + 局限 |
 | `summary.json` | 全部指标与分位的结构化结果 |
 | `data/csi300_valuation_history.csv` | 核心月末序列：点位、PE、PB、10Y、E/P、ERP、股息率、EPS、ROE、滚动分位 |
@@ -66,8 +67,10 @@
 
 - `analyze.py:46` `fetch_dividend_yield()` — 用 H00300 / 000300 推算股息率
 - `analyze.py:88` `main()` — 数据抓取、指标计算、写 `summary.json`
-- `build_dashboard.py:60` `HTML` — 页面模板与全部前端逻辑
-- `build_dashboard.py:547` — 数据注入并写文件
+- `build_dashboard.py:60` `HTML` — 页面模板与全部前端逻辑（含 PWA meta）
+- `build_dashboard.py:341` `drawFigure()` — 通用多面板图：窄屏字号/面板高度自适应、端点标签防重叠
+- `build_dashboard.py:634` — 数据注入，同时写 `沪深300估值看板.html` 与 `index.html`
+- `sw.js:2` — 离线缓存版本号；改动页面后需递增
 
 ---
 
@@ -234,7 +237,9 @@ R_t = 沪深300全收益指数(H00300) / 沪深300价格指数(000300)
    - 四个面板共用横轴（EPS 元、ROE %、PE 倍、PB 倍，量纲各不相同，不能同轴叠加）
    - ROE 低是当前“低 PB”的关键解释；PE 与 PB 同屏便于对照“PB = PE × ROE”
 
-交互：十字线 + 全部序列 tooltip、键盘左右键、每个卡片可展开数据表、深浅色主题切换。
+交互：十字线 + 全部序列 tooltip（手机点按可用）、键盘左右键、每个卡片可展开数据表、深浅色主题切换。
+
+响应式：桌面保持原尺寸；窄屏按 `K = 760 / 容器宽度` 放大 SVG 字号与线宽，并按 `HS` 加高面板，保证手机端读数清晰；端点标签会自动错开并用细引线连回数据点。
 
 配色使用 dataviz 参考调色板并通过校验：
 
@@ -253,11 +258,15 @@ node <dataviz>/scripts/validate_palette.js "#2a78d6,#eb6834,#1baf7a,#eda100" --m
 3. 中证官网估值接口只有最近 20 个交易日，无法用于历史分位。
 4. ROE 为 `PB/PE` 近似值，使用 TTM 盈利与最新净资产，未做平均净资产调整。
 5. 看板数据为月末快照，不适合盘中择时；估值是赔率，不是 timing。
-6. 可加 Windows 任务计划程序，每月最后一个交易日自动运行：
+6. 在线版是**静态快照**，不会自动更新；每次更新数据后需要重新构建并 `git push`（见 10.2）。
+7. 离线模式显示的是**最后一次成功缓存的页面**，不是实时行情；数据日期以页头为准。
+8. iOS 不提供 Chrome 式安装按钮，只能通过 Safari 分享菜单“添加到主屏幕”。
+9. 可加 Windows 任务计划程序，每月最后一个交易日自动运行：
 
 ```bat
 cd /d D:\Claudeee\沪深300估值
 set REFRESH=1 && python analyze.py && python build_dashboard.py
+git add -A && git commit -m "auto: monthly update" && git push
 ```
 
 ---
@@ -272,17 +281,37 @@ set REFRESH=1 && python analyze.py && python build_dashboard.py
 - [ ] 三张图末端标注是否等于 `summary.json` 中的当前值
 - [ ] 数据表行数是否为 121（近十年月末）
 - [ ] 深色模式下四色曲线是否可辨
+- [ ] 线上地址能打开、控制台无报错（`index.html` 已随构建更新）
+- [ ] 手机宽度下无横向溢出、图表字可读、点按能出 tooltip
+- [ ] 改动页面后 `sw.js` 的 `CACHE` 版本已递增并已推送
 
 ---
 
 ## 10. 在线部署（GitHub Pages + PWA）
 
-- 仓库：<https://github.com/edison19490901-netizen/hs300-valuation>（public）
-- 看板：<https://edison19490901-netizen.github.io/hs300-valuation/>
-- Pages 来源：`main` 分支根目录；推送后自动重新部署（约 1 分钟）
-- `.nojekyll` 已加入，确保静态文件原样发布
+> 本轮（2026-10-31）完成：建仓并推送 GitHub、开启 Pages、把看板改造成可安装的 PWA、针对手机重做图表字号与布局，并在 360 / 390 / 1280px 下逐项验证。
 
-### 10.1 更新数据后同步到线上
+- 仓库：<https://github.com/edison19490901-netizen/hs300-valuation>（public；免费 Pages 要求公开仓库）
+- 看板：<https://edison19490901-netizen.github.io/hs300-valuation/>
+- Pages 来源：`main` 分支根目录，`https_enforced: true`；推送后自动构建，约 1 分钟
+- `.nojekyll`：跳过 Jekyll，静态文件原样发布
+- 仓库 Homepage 已指向上面地址
+
+### 10.1 本轮改动清单
+
+| 改动 | 说明 |
+|---|---|
+| GitHub 仓库 | `git init -b main` → `gh repo create hs300-valuation --public --source=. --remote=origin --push` |
+| Pages | `gh api -X POST repos/<owner>/<repo>/pages`，`source.branch=main`、`source.path=/` |
+| 在线入口 | `build_dashboard.py` 现在同时写 `index.html` 与 `沪深300估值看板.html`，两者内容相同 |
+| PWA 清单 | `manifest.webmanifest`：`display: standalone`、`start_url/scope = ./`、256/192/512/maskable 图标 |
+| 图标 | 以 `300.png`（256×256，透明底）为主图标；派生白底 maskable、Apple touch icon |
+| 离线 | `sw.js`：导航“联网优先 + 断网回退”，静态资源“缓存优先” |
+| 移动端图表 | 窄屏放大 SVG 字号/线宽、加高面板、端点标签防重叠、点按出 tooltip |
+| 移动端表格 | 6 列数据表改为卡片内横向滚动，日期不换行 |
+| 页面元信息 | 双 `theme-color`、`apple-mobile-web-app-*`、`viewport-fit=cover`、safe-area 内边距 |
+
+### 10.2 更新数据并发布
 
 ```bash
 cd /d/Claudeee/沪深300估值
@@ -292,18 +321,80 @@ git add -A && git commit -m "更新 2026-11 月末数据"
 git push
 ```
 
-推送后等 1–2 分钟刷新网页。手机端若已添加到主屏幕，联网打开时会走“联网优先”策略拿到新版本；`sw.js` 的 `CACHE` 版本号可手动加一，强制清掉旧缓存。
+推送后等 1–2 分钟刷新网页（GitHub Pages 本身有约 10 分钟 `Cache-Control`，CDN 通常更快）。
 
-### 10.2 手机上像 App 一样使用
+- 页面导航走“联网优先”，只要联网就会取到新版本，不依赖清缓存。
+- 若改了 `index.html` 的引用资源（图标等），把 `sw.js` 顶部的 `CACHE` 版本号加一，旧缓存会在新 SW 激活时删除。
+- 只在本地看：双击 `沪深300估值看板.html` 即可，`file://` 下不会注册 Service Worker，不影响使用。
 
-- **Android Chrome**：打开网址 → 菜单 → “安装应用 / 添加到主屏幕”，之后以独立窗口打开，断网也能看最近一次缓存。
+### 10.3 手机上像 App 一样使用
+
+- **Android Chrome**：打开网址 → 菜单 → “安装应用 / 添加到主屏幕”。之后以独立窗口打开，断网也能看最近一次缓存。
 - **iPhone Safari**：打开网址 → 分享 → “添加到主屏幕”。图标为 `300.png`，启动后隐藏浏览器地址栏。
+- iOS 不显示“安装”按钮是正常的（苹果不支持 Chrome 式安装提示），用分享菜单添加即可。
+- 已添加到主屏的页面在联网打开时会自动拿到新数据；断网时显示最后一次成功缓存的版本。
 
-### 10.3 PWA 相关注意事项
+### 10.4 PWA 实现细节
 
-- Service Worker 只在 `https://` 或 `localhost` 下注册，本地双击 HTML（`file://`）不会注册，不影响离线双击查看。
-- 清单的 `start_url` / `scope` 均为 `./`，因此仓库改名或换路径无需改代码。
-- 若更换图标，保持 `300.png` 文件名并重新生成 192/512/maskable 三档即可。
+**清单 `manifest.webmanifest`**
+
+- `name: 沪深300估值`、`short_name: 沪深300`、`display: standalone`
+- `start_url` / `scope` / `id` 都是 `./`，仓库改名或换路径无需改代码
+- 图标：`300.png`（256, any）、`300-192.png`、`300-512.png`、`300-maskable.png`（512, maskable）
+- `theme_color: #fcfcfb`、`background_color: #f9f9f7`
+
+**Service Worker `sw.js`**
+
+- `install`：`cache.addAll(SHELL)` 预缓存页面、清单、全部图标，然后 `skipWaiting`
+- `activate`：删除除当前 `CACHE` 外的旧缓存，`clients.claim()`
+- 导航请求：先 `fetch`，成功则回写 `./index.html`；失败回退缓存
+- 其它同源 GET：缓存优先，未命中再请求并回填（只缓存 200 的同源响应）
+- 注册条件：`https:` 或 `localhost`；`file://` 不注册
+
+**图标生成**（换图时执行，保持文件名不变）
+
+```python
+from PIL import Image
+src = Image.open("300.png").convert("RGBA")
+for s in (192, 512):
+    src.resize((s, s), Image.LANCZOS).save(f"300-{s}.png", optimize=True)
+# maskable / apple-touch-icon：白底画布 + 居中图标（70% / 88%），避免 iOS 透明底变黑
+```
+
+### 10.5 移动端图表适配（`build_dashboard.py:341` `drawFigure`）
+
+- `K = min(2.3, max(1, 760 / 容器宽度))`：按容器宽度放大 SVG 内字号（轴刻度 11×K、端点标签 12×K、面板名 10.5×K），使手机上实际字号约 10–11px。
+- 左右边距、底部边距、面板间距随 `K` 增加，给放大后的刻度与端点标签留空间。
+- 面板高度额外乘 `HS = 1 + 0.45 × (K-1)`，避免 6 个 Y 轴刻度挤在一起；桌面端 `K=1`，保持原样。
+- 线宽 `2×min(K,1.5)`、端点圆点半径随 `K` 增大，小屏不至于细到看不见。
+- 端点标签按 y 排序，间距不足 `1.08×字号` 时依次推开，并用 1px 半透明引线连回数据点（ERP 图 2.39% 与 1.65% 就会出现）。
+- `pointerdown` 也能触发 tooltip，手机点按即可读数；十字线、左右键逻辑不变。
+- CSS 断点：`≤820px` 指标卡 2 列；`≤600px` 收紧页边距/卡片内边距、数据表 `min-width:520px` + `nowrap`，表格在卡片内横向滚动。
+
+### 10.6 本轮验证记录
+
+| 项目 | 结果 |
+|---|---|
+| 线上首页 / 清单 / SW / 图标 | HTTP 200；`manifest` 为 `application/manifest+json`，`sw.js` 为 `application/javascript` |
+| Chrome 安装条件 | `Page.getInstallabilityErrors` 仅报 `in-incognito`（Playwright 无痕上下文），`manifest.errors = []` |
+| Service Worker | `hs300-valuation-v2` 已激活并控制页面 |
+| 断网 | 断网后重载仍显示 3 张图、4 个指标卡 |
+| 手机布局 | 390 / 360px 下 `scrollWidth == innerWidth`，无横向溢出；图表轴字号约 10.2px |
+| 交互 | 点按图表出 tooltip；主题切换；数据表 121 行 |
+| 控制台 | 无报错 |
+| 桌面 | 1280px 下版式与改造前一致 |
+
+### 10.7 线上问题排查
+
+| 现象 | 处理 |
+|---|---|
+| Pages 打开 404 | 确认仓库 Settings → Pages 为 `main` / `(root)`；确认 `.nojekyll` 已推送；看 Actions/Pages 构建状态 |
+| 推送后网页没变 | 等 1–2 分钟；强制刷新；GitHub Pages 有约 10 分钟缓存 |
+| 手机主屏仍是旧版 | 联网重开一次（导航联网优先）；仍不行则递增 `sw.js` 的 `CACHE` 版本并推送，必要时在浏览器里注销 Service Worker |
+| Chrome 没有“安装应用” | 必须是 https、清单可访问、含 192/512 图标、SW 已激活；公司网络/隐私模式可能屏蔽 |
+| iOS 图标变黑底 | iOS 不支持透明图标，已改用白底 `apple-touch-icon.png` |
+| 手机上图表字太小/刻度重叠 | 检查 `drawFigure` 的 `K` / `HS` 计算是否拿到正确容器宽度；必要时下调 `K` 上限 |
+| 清单或 SW 404 | 确认文件在仓库根目录且文件名大小写一致（Pages 区分大小写） |
 
 ---
 
