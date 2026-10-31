@@ -50,6 +50,11 @@
 | `analyze.py` | 拉取数据、计算分位/ERP/EPS/ROE、输出 `summary.json` 与 `data/*.csv` |
 | `build_dashboard.py` | 读取 `summary.json` + `data/csi300_valuation_history.csv`，生成 HTML |
 | `沪深300估值看板.html` | 最终看板，双击即可打开，无需服务器 |
+| `index.html` | 同一份看板的在线入口（GitHub Pages 根路径），由 `build_dashboard.py` 一并生成 |
+| `manifest.webmanifest` | PWA 清单：名称、图标、`display: standalone` |
+| `sw.js` | 离线缓存：页面导航联网优先，断网回退缓存 |
+| `300.png` / `300-192.png` / `300-512.png` / `300-maskable.png` / `apple-touch-icon.png` | App 图标（由 `300.png` 派生） |
+| `README.md` | 仓库首页说明与在线地址 |
 | `沪深300估值报告.md` | 方法论 + 数据表 + 解读 + 局限 |
 | `summary.json` | 全部指标与分位的结构化结果 |
 | `data/csi300_valuation_history.csv` | 核心月末序列：点位、PE、PB、10Y、E/P、ERP、股息率、EPS、ROE、滚动分位 |
@@ -267,6 +272,38 @@ set REFRESH=1 && python analyze.py && python build_dashboard.py
 - [ ] 三张图末端标注是否等于 `summary.json` 中的当前值
 - [ ] 数据表行数是否为 121（近十年月末）
 - [ ] 深色模式下四色曲线是否可辨
+
+---
+
+## 10. 在线部署（GitHub Pages + PWA）
+
+- 仓库：<https://github.com/edison19490901-netizen/hs300-valuation>（public）
+- 看板：<https://edison19490901-netizen.github.io/hs300-valuation/>
+- Pages 来源：`main` 分支根目录；推送后自动重新部署（约 1 分钟）
+- `.nojekyll` 已加入，确保静态文件原样发布
+
+### 10.1 更新数据后同步到线上
+
+```bash
+cd /d/Claudeee/沪深300估值
+REFRESH=1 python analyze.py
+python build_dashboard.py        # 同时更新 index.html 与 沪深300估值看板.html
+git add -A && git commit -m "更新 2026-11 月末数据"
+git push
+```
+
+推送后等 1–2 分钟刷新网页。手机端若已添加到主屏幕，联网打开时会走“联网优先”策略拿到新版本；`sw.js` 的 `CACHE` 版本号可手动加一，强制清掉旧缓存。
+
+### 10.2 手机上像 App 一样使用
+
+- **Android Chrome**：打开网址 → 菜单 → “安装应用 / 添加到主屏幕”，之后以独立窗口打开，断网也能看最近一次缓存。
+- **iPhone Safari**：打开网址 → 分享 → “添加到主屏幕”。图标为 `300.png`，启动后隐藏浏览器地址栏。
+
+### 10.3 PWA 相关注意事项
+
+- Service Worker 只在 `https://` 或 `localhost` 下注册，本地双击 HTML（`file://`）不会注册，不影响离线双击查看。
+- 清单的 `start_url` / `scope` 均为 `./`，因此仓库改名或换路径无需改代码。
+- 若更换图标，保持 `300.png` 文件名并重新生成 192/512/maskable 三档即可。
 
 ---
 
