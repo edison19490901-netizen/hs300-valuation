@@ -1,5 +1,5 @@
 /* 沪深300估值 PWA：应用外壳离线缓存 */
-const CACHE = 'hs300-valuation-v1';
+const CACHE = 'hs300-valuation-v2';
 const SHELL = [
   './',
   './index.html',

@@ -138,7 +138,8 @@ HTML = r"""<!DOCTYPE html>
     .card h2{font-size:14px}
     .callout{padding:13px 14px; font-size:13px}
     .legend{gap:10px}
-    th,td{padding:6px 7px}
+    th,td{padding:6px 7px; white-space:nowrap}
+    .tablewrap table{min-width:520px}
   }
   .tile{
     background:var(--surface-1); border:1px solid var(--border); border-radius:12px;
@@ -340,8 +341,21 @@ function s(tag, attrs){
 function drawFigure(cfg){
   const svg = document.getElementById(cfg.svgId);
   const tip = document.getElementById(cfg.tipId);
-  const W = 760, ML = 48, MR = 98, MT = 16, MB = 30, GAP = 26;
+  // 窄屏时放大文字/线宽，保证 SVG 缩放后仍有约 11px 的实际字号
+  const cw = svg.parentElement.clientWidth || 760;
+  const K = Math.min(2.3, Math.max(1, 760 / cw));
+  const LW = 2 * Math.min(K, 1.5);
+  const R = 4 * (1 + 0.45 * (K - 1));
+  const W = 760, MT = 16;
+  const ML = 48 + 30 * (K - 1), MR = 98 + 22 * (K - 1);
+  const MB = 30 + 8 * (K - 1), GAP = 26 + 4 * (K - 1);
   const panels = cfg.panels;
+  // 窄屏同时加高面板，避免 y 轴刻度挤在一起
+  const HS = 1 + 0.45 * (K - 1);
+  panels.forEach(p => {
+    if (p.h0 == null) p.h0 = p.h;
+    p.h = p.h0 * HS;
+  });
   const totalH = MT + MB + panels.reduce((a, p) => a + p.h, 0) + GAP * (panels.length - 1);
   svg.setAttribute('viewBox', `0 0 ${W} ${totalH}`);
   const rows = cfg.rows, n = rows.length;
@@ -355,14 +369,14 @@ function drawFigure(cfg){
 
   panels.forEach(p => {
     if (p.name){
-      const t = s('text', {x:ML, y:p.top-6, 'font-size':10.5, fill:'var(--muted)'});
+      const t = s('text', {x:ML, y:p.top-6*K, 'font-size':10.5*K, fill:'var(--muted)'});
       t.textContent = p.name;
       svg.appendChild(t);
     }
     // 网格线 + y 轴刻度
     p.yticks.forEach(v => {
       svg.appendChild(s('line', {x1:ML, x2:ML+iw, y1:yFor(p,v), y2:yFor(p,v), stroke:'var(--grid)', 'stroke-width':1}));
-      const t = s('text', {x:ML-9, y:yFor(p,v)+4, 'text-anchor':'end', 'font-size':11, fill:'var(--muted)'});
+      const t = s('text', {x:ML-9*K, y:yFor(p,v)+4*K, 'text-anchor':'end', 'font-size':11*K, fill:'var(--muted)'});
       t.textContent = v + (p.unit || '');
       svg.appendChild(t);
     });
@@ -386,6 +400,7 @@ function drawFigure(cfg){
     }
 
     // 数据线
+    const endLabels = [];
     p.series.forEach(ser => {
       let d = '';
       rows.forEach((r, i) => {
@@ -393,15 +408,35 @@ function drawFigure(cfg){
         if (v == null || Number.isNaN(v)) return;
         d += (d ? 'L' : 'M') + x(i).toFixed(1) + ' ' + yFor(p, v).toFixed(1);
       });
-      svg.appendChild(s('path', {d, fill:'none', stroke:ser.color, 'stroke-width':2,
+      svg.appendChild(s('path', {d, fill:'none', stroke:ser.color, 'stroke-width':LW,
         'stroke-linejoin':'round', 'stroke-linecap':'round'}));
 
       const lv = rows[n-1][ser.key];
-      svg.appendChild(s('circle', {cx:x(n-1), cy:yFor(p,lv), r:4, fill:ser.color,
+      svg.appendChild(s('circle', {cx:x(n-1), cy:yFor(p,lv), r:R, fill:ser.color,
         stroke:'var(--surface-1)', 'stroke-width':2}));
-      const lab = s('text', {x:x(n-1)+10, y:yFor(p,lv)+4, 'font-size':12, 'font-weight':600,
+      endLabels.push({y: yFor(p, lv), ser, text: ser.fmt(lv)});
+    });
+
+    // 端点标签：重叠时按顺序推开，并用细引线连回数据点
+    const fs = 12 * K, minGap = fs * 1.08;
+    endLabels.sort((a, b) => a.y - b.y);
+    endLabels.forEach((l, i) => {
+      l.ly = l.y;
+      if (i > 0 && l.ly - endLabels[i-1].ly < minGap) l.ly = endLabels[i-1].ly + minGap;
+    });
+    const minY = p.top + fs * .7, maxY = p.top + p.h - fs * .3;
+    const over = endLabels[endLabels.length-1].ly - maxY;
+    if (over > 0) endLabels.forEach(l => { l.ly -= over; });
+    if (endLabels[0].ly < minY) endLabels.forEach(l => { l.ly += minY - endLabels[0].ly; });
+    endLabels.forEach(l => {
+      const lx = x(n-1) + 10*K;
+      if (Math.abs(l.ly - l.y) > 0.5) {
+        svg.appendChild(s('line', {x1:x(n-1)+R+1, y1:l.y, x2:lx-3, y2:l.ly,
+          stroke:l.ser.color, 'stroke-width':1, opacity:.45}));
+      }
+      const lab = s('text', {x:lx, y:l.ly + 4*K, 'font-size':fs, 'font-weight':600,
         fill:'var(--text-primary)'});
-      lab.textContent = ser.fmt(lv);
+      lab.textContent = l.text;
       svg.appendChild(lab);
     });
   });
@@ -415,8 +450,8 @@ function drawFigure(cfg){
   years[rows[n-1].d.slice(0,4)] = n-1;
   Object.keys(years).filter((_, k) => k % 2 === 0).forEach(yr => {
     const i = years[yr];
-    svg.appendChild(s('line', {x1:x(i), x2:x(i), y1:plotBottom, y2:plotBottom+4, stroke:'var(--axis)', 'stroke-width':1}));
-    const t = s('text', {x:x(i), y:plotBottom+19, 'text-anchor':'middle', 'font-size':11, fill:'var(--muted)'});
+    svg.appendChild(s('line', {x1:x(i), x2:x(i), y1:plotBottom, y2:plotBottom+4*K, stroke:'var(--axis)', 'stroke-width':1}));
+    const t = s('text', {x:x(i), y:plotBottom+8*K+6, 'text-anchor':'middle', 'font-size':11*K, fill:'var(--muted)'});
     t.textContent = yr;
     svg.appendChild(t);
   });
@@ -429,7 +464,7 @@ function drawFigure(cfg){
   svg.appendChild(cross);
   const dots = [];
   panels.forEach(p => p.series.forEach(ser => {
-    const dot = s('circle', {r:4, fill:ser.color, stroke:'var(--surface-1)',
+    const dot = s('circle', {r:R, fill:ser.color, stroke:'var(--surface-1)',
       'stroke-width':2, opacity:0});
     dots.push({dot, p, ser});
     svg.appendChild(dot);
