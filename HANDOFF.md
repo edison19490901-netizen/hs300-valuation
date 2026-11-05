@@ -53,6 +53,7 @@
 | `index.html` | 同一份看板的在线入口（GitHub Pages 根路径），由 `build_dashboard.py` 一并生成 |
 | `manifest.webmanifest` | PWA 清单：名称、图标、`display: standalone` |
 | `sw.js` | 离线缓存：页面导航联网优先，断网回退缓存 |
+| `更新并发布.bat` | Windows 一键脚本：抓数据 → 重建页面 → 提交 → 确认后推送 |
 | `300.png` / `300-192.png` / `300-512.png` / `300-maskable.png` / `apple-touch-icon.png` | App 图标（由 `300.png` 派生） |
 | `README.md` | 仓库首页说明与在线地址 |
 | `.nojekyll` | 让 GitHub Pages 跳过 Jekyll，静态文件原样发布 |
@@ -140,12 +141,16 @@ $env:REFRESH=1; python analyze.py
 python build_dashboard.py
 ```
 
-cmd：
+cmd（换盘要带 `/d`，环境变量用 `set` 单独一行）：
 
 ```bat
-set REFRESH=1 && python analyze.py
+cd /d D:\Claudeee\沪深300估值
+set "REFRESH=1"
+python analyze.py
 python build_dashboard.py
 ```
+
+发布到 GitHub 的 cmd 写法见 10.2。
 
 ### 5.5 数据新鲜度说明
 
@@ -313,13 +318,57 @@ git add -A && git commit -m "auto: monthly update" && git push
 
 ### 10.2 更新数据并发布
 
+Git Bash 下 `cd /d/Claudeee/沪深300估值`；cmd 下用 `cd /d D:\Claudeee\沪深300估值`（cmd 换盘必须带 `/d`）。
+
+**方式 A：Git Bash**
+
 ```bash
 cd /d/Claudeee/沪深300估值
 REFRESH=1 python analyze.py
 python build_dashboard.py        # 同时更新 index.html 与 沪深300估值看板.html
+git status
 git add -A && git commit -m "更新 2026-11 月末数据"
 git push
 ```
+
+**方式 B：cmd（在当前文件夹）**
+
+在资源管理器地址栏输入 `cmd` 回车，即可在当前目录打开 cmd。
+
+```bat
+set "REFRESH=1"
+python analyze.py
+python build_dashboard.py
+start "" "index.html"
+git status
+git add -A
+git commit -m "更新 2026-11 月末数据"
+git push
+```
+
+要点：
+
+- cmd 里 **`set "REFRESH=1"` 必须单独一行**；`REFRESH=1 python analyze.py` 是 Bash 语法，cmd 不认。变量只在当前窗口有效，不想刷新时执行 `set "REFRESH="` 或直接关窗口。
+- 预览用 `start "" "index.html"`；不要用 `explorer.exe`，它成功时也可能返回非 0，串联时会被误判失败。
+- cmd 支持**整段粘贴**，会按行依次执行，不用一行行敲。
+- 也可合并为一行，`&&` 保证前一步成功才继续：
+
+```bat
+set "REFRESH=1" && python analyze.py && python build_dashboard.py && start "" "index.html" && git add -A && git commit -m "更新 2026-11 月末数据" && git push
+```
+
+**方式 C：一键脚本 `更新并发布.bat`**
+
+双击，或在 cmd 里执行 `更新并发布.bat`。脚本会：
+
+1. 自动切到脚本所在目录；
+2. `REFRESH=1` 抓数据 → 构建页面 → 打开本地预览；
+3. 列出改动并 `git add -A`；
+4. `git commit`（信息为 `update: monthly data`，可在脚本内修改）；
+5. **push 前询问 `Publish to GitHub now? (Y/N)`**，输入 `Y` 才推送；
+6. 任一步失败立即停止并提示，不会带错误继续发布。
+
+> 脚本为纯 ASCII 输出，避免 cmd 代码页导致中文乱码。首次运行时的 `git add -A` 会把脚本自身一并提交。
 
 推送后等 1–2 分钟刷新网页（GitHub Pages 本身有约 10 分钟 `Cache-Control`，CDN 通常更快）。
 
@@ -329,9 +378,12 @@ git push
 
 ### 10.3 手机上像 App 一样使用
 
+- **页面内“安装”按钮**：头部有“安装”按钮。Chrome 触发 `beforeinstallprompt` 时直接调起原生安装框；否则弹出分平台指引（Android / iOS / 微信 / 桌面）。
 - **Android Chrome**：打开网址 → 菜单 → “安装应用 / 添加到主屏幕”。之后以独立窗口打开，断网也能看最近一次缓存。
+  - 若点“安装应用”没反应或失败，通常是国内网络连不上 Google 生成 WebAPK 的服务器，属已知限制；改用“添加到主屏幕”创建快捷方式，或换 Edge / 手机自带浏览器“添加到桌面”。
 - **iPhone Safari**：打开网址 → 分享 → “添加到主屏幕”。图标为 `300.png`，启动后隐藏浏览器地址栏。
-- iOS 不显示“安装”按钮是正常的（苹果不支持 Chrome 式安装提示），用分享菜单添加即可。
+- iOS 不会触发浏览器安装事件，页面按钮会显示 Safari 分享菜单的图文指引，这不是故障。
+- **微信/QQ 内置浏览器**不支持安装，需先“···”→“在浏览器打开”。
 - 已添加到主屏的页面在联网打开时会自动拿到新数据；断网时显示最后一次成功缓存的版本。
 
 ### 10.4 PWA 实现细节
