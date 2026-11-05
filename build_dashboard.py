@@ -120,6 +120,27 @@ HTML = r"""<!DOCTYPE html>
     border-radius:999px; padding:7px 13px; font:inherit; font-size:12.5px; cursor:pointer;
   }
   .theme-btn:hover{color:var(--text-primary)}
+  .theme-btn:disabled{opacity:.55; cursor:default}
+  .theme-btn[hidden]{display:none}
+  .actions{display:flex; gap:8px; align-items:center; flex:none}
+  .theme-btn .lbl-short{display:none}
+  dialog.install-help{
+    width:min(430px, calc(100vw - 32px)); padding:20px 20px 16px;
+    border:1px solid var(--border); border-radius:14px;
+    background:var(--surface-1); color:var(--text-primary);
+    box-shadow:0 18px 50px rgba(0,0,0,.22);
+  }
+  dialog.install-help::backdrop{background:rgba(0,0,0,.38)}
+  dialog.install-help h2{font-size:16px; margin:0 0 10px; font-weight:650}
+  dialog.install-help p{font-size:13px; color:var(--text-secondary); margin:0 0 10px}
+  dialog.install-help ol{margin:0 0 14px; padding-left:20px; font-size:13px; color:var(--text-secondary); line-height:1.7}
+  dialog.install-help li{margin-bottom:6px}
+  dialog.install-help b{color:var(--text-primary); font-weight:600}
+  dialog.install-help .tip{
+    font-size:12.5px; color:var(--text-secondary); background:var(--wash);
+    border-radius:8px; padding:10px 12px; margin:0 0 14px; line-height:1.65;
+  }
+  dialog.install-help .row{display:flex; justify-content:flex-end; margin:0}
   .tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px}
   @media (max-width:820px){ .tiles{grid-template-columns:repeat(2,1fr)} }
   @media (max-width:600px){
@@ -132,6 +153,9 @@ HTML = r"""<!DOCTYPE html>
     h1{font-size:21px}
     .sub{font-size:12.5px}
     .theme-btn{padding:6px 10px; font-size:12px; flex:none}
+    .theme-btn .lbl-full{display:none}
+    .theme-btn .lbl-short{display:inline}
+    .actions{gap:6px}
     .tile{padding:13px 13px 11px}
     .tile .value{font-size:23px}
     .card{padding:14px 12px 10px}
@@ -200,7 +224,10 @@ HTML = r"""<!DOCTYPE html>
       <h1>沪深300 估值看板</h1>
       <p class="sub">数据截至 <span id="asof"></span> · 月末口径 · 乐咕乐股 / 中证指数 / 中债</p>
     </div>
-    <button class="theme-btn" id="themeBtn" type="button">切换主题</button>
+    <div class="actions">
+      <button class="theme-btn" id="installBtn" type="button" hidden><span class="lbl-full">安装到手机</span><span class="lbl-short">安装</span></button>
+      <button class="theme-btn" id="themeBtn" type="button">切换主题</button>
+    </div>
   </header>
 
   <section class="tiles" aria-label="核心估值指标">
@@ -289,6 +316,12 @@ HTML = r"""<!DOCTYPE html>
     中证指数官网口径与乐咕存在差异（成分权重、盈利口径不同），请勿混用。本页面仅用于估值研究，不构成投资建议。
   </footer>
 </div>
+
+<dialog class="install-help" id="installHelp">
+  <h2>安装到手机主屏幕</h2>
+  <div id="installHelpBody"></div>
+  <div class="row"><button class="theme-btn" id="installHelpClose" type="button">知道了</button></div>
+</dialog>
 
 <script>
 const DATA = __DATA__;
@@ -618,6 +651,103 @@ btn.addEventListener('click', () => {
     (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
   root.dataset.theme = dark ? 'light' : 'dark';
 });
+
+// 安装到主屏幕：能调用浏览器安装提示时直接调用，否则给出分平台的操作指引
+const installBtn = document.getElementById('installBtn');
+const helpDlg = document.getElementById('installHelp');
+const helpBody = document.getElementById('installHelpBody');
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/i.test(navigator.userAgent);
+const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+let deferredPrompt = null;
+
+function isStandalone(){
+  return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+function showInstallHelp(){
+  let html;
+  if (isIOS){
+    html =
+      '<p>iOS 没有“安装”按钮，需要通过 Safari 的分享菜单添加：</p>' +
+      '<ol>' +
+      '<li>用 <b>Safari</b> 打开本页（微信、QQ 内置浏览器不支持安装）。</li>' +
+      '<li>点底部工具栏的<b>分享</b>按钮（方框带向上箭头）。</li>' +
+      '<li>选择<b>“添加到主屏幕”</b>，再点右上角“添加”。</li>' +
+      '</ol>';
+  } else if (isAndroid){
+    html =
+      '<p>在 Chrome 中安装：</p>' +
+      '<ol>' +
+      '<li>点右上角 <b>⋮</b> 菜单，选择<b>“安装应用”</b>（部分版本显示为“添加到主屏幕”）。</li>' +
+      '<li>若点了没反应或安装失败：国内网络通常连不上 Google 生成 WebAPK 的服务器，这是已知限制，不是页面问题。可改用 <b>⋮ →“添加到主屏幕”</b> 创建快捷方式。</li>' +
+      '<li>或换用 <b>Edge / 手机自带浏览器</b>，在菜单里选择“添加到桌面”。</li>' +
+      '</ol>';
+  } else {
+    html =
+      '<p>在桌面浏览器中：</p>' +
+      '<ol>' +
+      '<li>点地址栏右侧的<b>“安装”</b>图标。</li>' +
+      '<li>或打开浏览器菜单，选择“安装应用 / 添加到主屏幕”。</li>' +
+      '</ol>' +
+      '<p class="tip">把本页链接发到手机浏览器打开，再按提示安装到手机主屏幕。</p>';
+  }
+  if (isWeChat){
+    html = '<p class="tip">当前是微信内置浏览器，无法直接安装。请点右上角“···”→“在浏览器打开”，再按下面的步骤操作。</p>' + html;
+  } else if (isIOS || isAndroid){
+    html += '<p class="tip">已访问过本页后，即使离线也能打开；安装失败不影响离线使用。</p>';
+  }
+  helpBody.innerHTML = html;
+  if (helpDlg.showModal) helpDlg.showModal();
+  else helpDlg.setAttribute('open', '');
+}
+
+function updateInstallBtn(){
+  installBtn.hidden = isStandalone() || !(deferredPrompt || isIOS || isAndroid);
+}
+
+// 桌面浏览器上装的是本机应用，措辞不要写成“到手机”
+if (!isIOS && !isAndroid){
+  installBtn.querySelector('.lbl-full').textContent = '安装为应用';
+}
+
+addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  updateInstallBtn();
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt){ showInstallHelp(); return; }
+  const promptEvent = deferredPrompt;
+  deferredPrompt = null;
+  try {
+    promptEvent.prompt();
+    const choice = await promptEvent.userChoice;
+    if (choice && choice.outcome === 'accepted'){
+      // WebAPK 生成可能需要十几秒；成功后由 appinstalled 隐藏按钮
+      installBtn.disabled = true;
+      setTimeout(() => { installBtn.disabled = false; }, 12000);
+      return;
+    }
+    showInstallHelp();
+  } catch (err){
+    showInstallHelp();
+  }
+});
+
+addEventListener('appinstalled', () => { installBtn.hidden = true; });
+
+document.getElementById('installHelpClose').addEventListener('click', () => {
+  if (helpDlg.close) helpDlg.close();
+  else helpDlg.removeAttribute('open');
+});
+helpDlg.addEventListener('click', e => {
+  if (e.target === helpDlg && helpDlg.close) helpDlg.close();
+});
+
+updateInstallBtn();
 
 // PWA：仅 https 或 localhost 下注册；本地双击打开（file://）不会触发
 const swHost = ['localhost', '127.0.0.1'].includes(location.hostname);
