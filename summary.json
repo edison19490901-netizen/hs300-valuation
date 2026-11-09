@@ -1,13 +1,13 @@
 {
-  "as_of": "2026-11-04",
+  "as_of": "2026-11-06",
   "indices": {
     "pe_ttm": {
-      "current": 12.8,
-      "pct_all": 55.77,
+      "current": 12.68,
+      "pct_all": 53.46,
       "min_all": 7.96,
       "median_all": 12.53,
       "max_all": 47.84,
-      "pct_10y": 66.67,
+      "pct_10y": 64.17,
       "min_10y": 9.61,
       "median_10y": 12.26,
       "max_10y": 15.95,
@@ -17,12 +17,12 @@
       "max_5y": 13.85
     },
     "pe_static": {
-      "current": 13.35,
-      "pct_all": 51.92,
+      "current": 13.22,
+      "pct_all": 50.77,
       "min_all": 8.19,
       "median_all": 13.21,
       "max_all": 65.32,
-      "pct_10y": 64.17,
+      "pct_10y": 62.5,
       "min_10y": 10.07,
       "median_10y": 12.71,
       "max_10y": 16.86,
@@ -32,72 +32,72 @@
       "max_5y": 15.8
     },
     "pe_median": {
-      "current": 17.81,
-      "pct_all": 6.92,
+      "current": 17.78,
+      "pct_all": 6.15,
       "min_all": 12.94,
       "median_all": 22.09,
       "max_all": 58.64,
-      "pct_10y": 6.67,
+      "pct_10y": 5.83,
       "min_10y": 16.21,
       "median_10y": 21.08,
       "max_10y": 30.93,
-      "pct_5y": 6.67,
+      "pct_5y": 5.0,
       "min_5y": 17.31,
       "median_5y": 20.33,
       "max_5y": 27.74
     },
     "pb": {
-      "current": 1.33,
-      "pct_all": 16.54,
+      "current": 1.32,
+      "pct_all": 15.0,
       "min_all": 1.16,
       "median_all": 1.58,
       "max_all": 7.09,
-      "pct_10y": 28.33,
+      "pct_10y": 25.83,
       "min_10y": 1.16,
       "median_10y": 1.44,
       "max_10y": 1.79,
-      "pct_5y": 46.67,
+      "pct_5y": 43.33,
       "min_5y": 1.16,
       "median_5y": 1.37,
       "max_5y": 1.69
     },
     "pe_equal_weight": {
-      "current": 29.28,
-      "pct_all": 25.77,
+      "current": 30.13,
+      "pct_all": 33.46,
       "min_all": 17.83,
       "median_all": 32.99,
       "max_all": 70.37,
-      "pct_10y": 28.33,
+      "pct_10y": 39.17,
       "min_10y": 23.4,
       "median_10y": 31.63,
       "max_10y": 46.03,
-      "pct_5y": 40.0,
+      "pct_5y": 51.67,
       "min_5y": 23.91,
-      "median_5y": 29.84,
+      "median_5y": 30.05,
       "max_5y": 37.78
     },
     "erp": {
-      "current": 6.2048000000000005,
-      "pct_all": 74.62,
+      "current": 6.2996353312302835,
+      "pct_all": 75.77,
       "min_all": -2.4,
       "median_all": 5.14,
       "max_all": 8.4,
-      "pct_10y": 70.0,
+      "pct_10y": 72.5,
       "min_10y": 2.67,
       "median_10y": 5.62,
       "max_10y": 7.76,
-      "pct_5y": 46.67,
+      "pct_5y": 48.33,
       "min_5y": 4.7,
       "median_5y": 6.33,
       "max_5y": 7.76
     },
     "earnings_yield": {
-      "current": 7.8125,
-      "pct_all": 44.62,
+      "current": 7.886435331230284,
+      "pct_all": 46.92,
       "min_all": 2.09,
       "median_all": 7.98,
       "max_all": 12.56,
-      "pct_10y": 34.17,
+      "pct_10y": 36.67,
       "min_10y": 6.27,
       "median_10y": 8.16,
       "max_10y": 10.41,
@@ -107,12 +107,12 @@
       "max_5y": 10.41
     },
     "dividend_yield_derived": {
-      "current": 2.3105504622025874,
-      "pct_all": 65.03,
+      "current": 2.319288074143655,
+      "pct_all": 66.43,
       "min_all": 1.52,
       "median_all": 2.26,
       "max_all": 3.36,
-      "pct_10y": 62.5,
+      "pct_10y": 64.17,
       "min_10y": 1.73,
       "median_10y": 2.27,
       "max_10y": 3.36,
@@ -122,65 +122,70 @@
       "max_5y": 3.36
     },
     "roe": {
-      "current": 10.390625,
+      "current": 10.410094637223976,
       "pct_all": 0.38,
-      "min_all": 10.39,
+      "min_all": 10.41,
       "median_all": 12.53,
       "max_all": 16.97,
       "pct_10y": 0.83,
-      "min_10y": 10.39,
+      "min_10y": 10.41,
       "median_10y": 11.82,
       "max_10y": 12.93,
       "pct_5y": 1.67,
-      "min_5y": 10.39,
+      "min_5y": 10.41,
       "median_5y": 11.2,
       "max_5y": 12.7
     },
-    "pe_pct_10y_current": 66.67
+    "pe_pct_10y_current": 64.17
   },
   "peers": {
     "上证50": {
-      "date": "2026-11-04",
-      "close": 2808.54,
-      "pe_ttm": 11.72,
-      "pe_ttm_pct_all": 67.68,
-      "pb": 1.23,
-      "pb_pct_all": 32.7
+      "date": "2026-11-06",
+      "close": 2787.41,
+      "pe_ttm": 11.6,
+      "pe_ttm_pct_all": 65.4,
+      "pb": 1.22,
+      "pb_pct_all": 28.9
     },
     "中证500": {
-      "date": "2026-11-04",
-      "close": 6622.03,
-      "pe_ttm": 22.77,
-      "pe_ttm_pct_all": 38.49,
+      "date": "2026-11-06",
+      "close": 6597.35,
+      "pe_ttm": 22.7,
+      "pe_ttm_pct_all": 38.08,
       "pb": 2.05,
       "pb_pct_all": 33.05
     },
     "中证1000": {
-      "date": "2026-11-04",
-      "close": 6511.81,
-      "pe_ttm": 25.37,
-      "pe_ttm_pct_all": 41.1,
+      "date": "2026-11-06",
+      "close": 6505.35,
+      "pe_ttm": 25.32,
+      "pe_ttm_pct_all": 40.41,
       "pb": 2.04,
       "pb_pct_all": 17.12
     },
     "中证800": {
-      "error": "AttributeError: 'NoneType' object has no attribute 'attrs'"
+      "date": "2026-11-06",
+      "close": 4486.66,
+      "pe_ttm": 13.8,
+      "pe_ttm_pct_all": 53.14,
+      "pb": 1.41,
+      "pb_pct_all": 18.41
     }
   },
   "bond": {
-    "date": "2026-11-04",
-    "y10": 1.6077,
-    "y10_pct_all": 0.15
+    "date": "2026-11-06",
+    "y10": 1.5868,
+    "y10_pct_all": 0.02
   },
-  "index_close": 4101.34,
+  "index_close": 4054.28,
   "earnings": {
-    "eps_ttm": 320.42,
-    "eps_yoy_pct": -7.7,
-    "roe_current": 10.39,
+    "eps_ttm": 319.74,
+    "eps_yoy_pct": -7.9,
+    "roe_current": 10.41,
     "roe_pct_10y": 0.8,
     "index_peak": 5688.54,
     "peak_date": "2007-10-31",
-    "drawdown_from_peak_pct": -27.9
+    "drawdown_from_peak_pct": -28.7
   },
   "bands": {
     "pe_10y": {
@@ -239,10 +244,10 @@
     }
   },
   "csindex": {
-    "date": "2026-11-04",
-    "pe1": 13.98,
-    "pe2": 15.43,
-    "dy1": 3.0,
-    "dy2": 2.65
+    "date": "2026-11-06",
+    "pe1": 13.82,
+    "pe2": 15.24,
+    "dy1": 3.03,
+    "dy2": 2.68
   }
 }
