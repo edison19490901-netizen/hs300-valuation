@@ -1,38 +1,38 @@
 {
-  "as_of": "2026-11-06",
+  "as_of": "2026-11-13",
   "indices": {
     "pe_ttm": {
-      "current": 12.68,
-      "pct_all": 53.46,
+      "current": 12.62,
+      "pct_all": 52.31,
       "min_all": 7.96,
       "median_all": 12.53,
       "max_all": 47.84,
-      "pct_10y": 64.17,
+      "pct_10y": 62.5,
       "min_10y": 9.61,
       "median_10y": 12.26,
       "max_10y": 15.95,
-      "pct_5y": 76.67,
+      "pct_5y": 75.0,
       "min_5y": 9.61,
       "median_5y": 11.69,
       "max_5y": 13.85
     },
     "pe_static": {
-      "current": 13.22,
-      "pct_all": 50.77,
+      "current": 13.18,
+      "pct_all": 50.0,
       "min_all": 8.19,
-      "median_all": 13.21,
+      "median_all": 13.2,
       "max_all": 65.32,
-      "pct_10y": 62.5,
+      "pct_10y": 61.67,
       "min_10y": 10.07,
       "median_10y": 12.71,
       "max_10y": 16.86,
-      "pct_5y": 71.67,
+      "pct_5y": 70.0,
       "min_5y": 10.07,
       "median_5y": 12.05,
       "max_5y": 15.8
     },
     "pe_median": {
-      "current": 17.78,
+      "current": 17.73,
       "pct_all": 6.15,
       "min_all": 12.94,
       "median_all": 22.09,
@@ -62,22 +62,22 @@
       "max_5y": 1.69
     },
     "pe_equal_weight": {
-      "current": 30.13,
-      "pct_all": 33.46,
+      "current": 29.55,
+      "pct_all": 28.85,
       "min_all": 17.83,
       "median_all": 32.99,
       "max_all": 70.37,
-      "pct_10y": 39.17,
+      "pct_10y": 31.67,
       "min_10y": 23.4,
       "median_10y": 31.63,
       "max_10y": 46.03,
-      "pct_5y": 51.67,
+      "pct_5y": 45.0,
       "min_5y": 23.91,
-      "median_5y": 30.05,
+      "median_5y": 29.84,
       "max_5y": 37.78
     },
     "erp": {
-      "current": 6.2996353312302835,
+      "current": 6.311630269413629,
       "pct_all": 75.77,
       "min_all": -2.4,
       "median_all": 5.14,
@@ -92,22 +92,22 @@
       "max_5y": 7.76
     },
     "earnings_yield": {
-      "current": 7.886435331230284,
-      "pct_all": 46.92,
+      "current": 7.9239302694136295,
+      "pct_all": 48.08,
       "min_all": 2.09,
       "median_all": 7.98,
       "max_all": 12.56,
-      "pct_10y": 36.67,
+      "pct_10y": 38.33,
       "min_10y": 6.27,
       "median_10y": 8.16,
       "max_10y": 10.41,
-      "pct_5y": 25.0,
+      "pct_5y": 26.67,
       "min_5y": 7.22,
       "median_5y": 8.56,
       "max_5y": 10.41
     },
     "dividend_yield_derived": {
-      "current": 2.319288074143655,
+      "current": 2.322766795607878,
       "pct_all": 66.43,
       "min_all": 1.52,
       "median_all": 2.26,
@@ -122,70 +122,70 @@
       "max_5y": 3.36
     },
     "roe": {
-      "current": 10.410094637223976,
-      "pct_all": 0.38,
-      "min_all": 10.41,
+      "current": 10.459587955625992,
+      "pct_all": 0.77,
+      "min_all": 10.46,
       "median_all": 12.53,
       "max_all": 16.97,
-      "pct_10y": 0.83,
-      "min_10y": 10.41,
+      "pct_10y": 1.67,
+      "min_10y": 10.46,
       "median_10y": 11.82,
       "max_10y": 12.93,
-      "pct_5y": 1.67,
-      "min_5y": 10.41,
+      "pct_5y": 3.33,
+      "min_5y": 10.46,
       "median_5y": 11.2,
       "max_5y": 12.7
     },
-    "pe_pct_10y_current": 64.17
+    "pe_pct_10y_current": 62.5
   },
   "peers": {
     "上证50": {
-      "date": "2026-11-06",
-      "close": 2787.41,
-      "pe_ttm": 11.6,
-      "pe_ttm_pct_all": 65.4,
+      "date": "2026-11-13",
+      "close": 2775.02,
+      "pe_ttm": 11.66,
+      "pe_ttm_pct_all": 66.16,
       "pb": 1.22,
       "pb_pct_all": 28.9
     },
     "中证500": {
-      "date": "2026-11-06",
-      "close": 6597.35,
-      "pe_ttm": 22.7,
-      "pe_ttm_pct_all": 38.08,
-      "pb": 2.05,
-      "pb_pct_all": 33.05
+      "date": "2026-11-13",
+      "close": 6465.49,
+      "pe_ttm": 22.15,
+      "pe_ttm_pct_all": 36.4,
+      "pb": 2.0,
+      "pb_pct_all": 31.38
     },
     "中证1000": {
-      "date": "2026-11-06",
-      "close": 6505.35,
-      "pe_ttm": 25.32,
-      "pe_ttm_pct_all": 40.41,
-      "pb": 2.04,
-      "pb_pct_all": 17.12
+      "date": "2026-11-13",
+      "close": 6357.26,
+      "pe_ttm": 24.76,
+      "pe_ttm_pct_all": 36.99,
+      "pb": 1.99,
+      "pb_pct_all": 14.38
     },
     "中证800": {
-      "date": "2026-11-06",
-      "close": 4486.66,
-      "pe_ttm": 13.8,
-      "pe_ttm_pct_all": 53.14,
-      "pb": 1.41,
-      "pb_pct_all": 18.41
+      "date": "2026-11-13",
+      "close": 4432.03,
+      "pe_ttm": 13.69,
+      "pe_ttm_pct_all": 52.3,
+      "pb": 1.4,
+      "pb_pct_all": 15.9
     }
   },
   "bond": {
-    "date": "2026-11-06",
-    "y10": 1.5868,
-    "y10_pct_all": 0.02
+    "date": "2026-11-13",
+    "y10": 1.6123,
+    "y10_pct_all": 0.29
   },
-  "index_close": 4054.28,
+  "index_close": 4016.29,
   "earnings": {
-    "eps_ttm": 319.74,
-    "eps_yoy_pct": -7.9,
-    "roe_current": 10.41,
-    "roe_pct_10y": 0.8,
+    "eps_ttm": 318.25,
+    "eps_yoy_pct": -8.3,
+    "roe_current": 10.46,
+    "roe_pct_10y": 1.7,
     "index_peak": 5688.54,
     "peak_date": "2007-10-31",
-    "drawdown_from_peak_pct": -28.7
+    "drawdown_from_peak_pct": -29.4
   },
   "bands": {
     "pe_10y": {
@@ -244,10 +244,10 @@
     }
   },
   "csindex": {
-    "date": "2026-11-06",
-    "pe1": 13.82,
-    "pe2": 15.24,
+    "date": "2026-11-11",
+    "pe1": 13.83,
+    "pe2": 15.32,
     "dy1": 3.03,
-    "dy2": 2.68
+    "dy2": 2.67
   }
 }
