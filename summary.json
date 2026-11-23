@@ -156,7 +156,12 @@
       "pb_pct_all": 26.78
     },
     "中证1000": {
-      "error": "AttributeError: 'NoneType' object has no attribute 'attrs'"
+      "date": "2026-11-20",
+      "close": 5648.63,
+      "pe_ttm": 22.23,
+      "pe_ttm_pct_all": 12.33,
+      "pb": 1.79,
+      "pb_pct_all": 4.11
     },
     "中证800": {
       "error": "AttributeError: 'NoneType' object has no attribute 'attrs'"
